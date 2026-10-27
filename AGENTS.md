@@ -24,7 +24,7 @@ Ein Durchgang bearbeitet ein Issue auf seinem Branch. Der Pull Request geht nach
 
 Ein neues Werkzeug beginnt mit seinem offiziellen Create- oder Init-Befehl. `package.json` wird nicht von Hand angelegt, und die Abhängigkeiten werden nicht zuerst mit einem nackten `npm install` hereingeholt. Die Befehle fragen die Entscheidungen ab und legen die Dateien an, die das Werkzeug erwartet.
 
-Die App liegt in diesem Repo, nicht in einem Unterordner. Der Ordner enthält schon Docs. Trotzdem startet Next.js mit `npx create-next-app@latest .`. Danach shadcn mit `npx shadcn@latest init`, Basis `stone`. Vitest mit `npm create vitest@latest`. Spätere Werkzeuge genauso: Supabase über die CLI, shadcn-Komponenten über `npx shadcn@latest add`.
+Die App liegt in diesem Repo, nicht in einem Unterordner. Der Ordner enthält schon Docs. Next.js startet mit `npx create-next-app@latest`. Weigert sich der Befehl wegen vorhandener Dateien, legt er das Gerüst in einem frischen Ordner an und die erzeugten Dateien kommen hierher. Danach shadcn mit `npx shadcn@latest init`, Basis `stone`. Vitest hat keinen eigenen Create-Befehl vom Vitest-Projekt. `npm create vitest` ist ein anderes Paket und wird nicht benutzt. Vitest wird so installiert, wie die Vitest-Doku es beschreibt. Spätere Werkzeuge genauso: Supabase über die CLI, shadcn-Komponenten über `npx shadcn@latest add`.
 
 ## TDD
 

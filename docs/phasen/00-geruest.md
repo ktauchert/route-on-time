@@ -6,7 +6,7 @@
 
 ## Aufgaben
 
-1. Next.js mit `npx create-next-app@latest .` anlegen, in diesem Ordner. Vitest mit `npm create vitest@latest`. Der erste Test ist rot, bevor die Startseite existiert. `npm test` und `npm run lint` erfüllen `.github/workflows/ci.yml`.
+1. Next.js mit `npx create-next-app@latest` anlegen, in diesem Ordner. Vitest nach seiner Doku, nicht über `npm create vitest`. Der erste Test ist rot, bevor die Startseite den Namen zeigt. `npm test` und `npm run lint` erfüllen `.github/workflows/ci.yml`.
 2. shadcn/ui mit `npx shadcn@latest init` einrichten, Basis `stone`, und eine erste Komponente mit `npx shadcn@latest add` einsetzen. Den shadcn-MCP erst danach anschließen, siehe [MCP](../mcp.md).
 3. Eine Startseite mit dem Namen „Route on Time“.
 4. Ein Web-App-Manifest mit diesem Namen, `start_url` und `display: standalone`, plus den Meta-Eintrag, den iOS für eine eigene App braucht. Icons folgen in [Phase 8](./08-pwa.md).

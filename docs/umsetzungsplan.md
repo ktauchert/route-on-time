@@ -19,7 +19,7 @@ Jede Phase nennt eigene Prüfungen. Darüber gilt für alle:
 - Die App baut ohne Fehler.
 - Eine Phase, die eine Ansicht verändert, zeigt sie im Mobil-Layout und im Desktop-Layout, in Hell und in Dunkel. Siehe [Oberfläche](./oberflaeche.md).
 - Ein fremder Nutzer sieht keine fremden Routen. Ab Phase 2 ist das eine Zeilensicherheit in Supabase, kein Filter nur in der Oberfläche.
-- Die Fahrplanauskunft wird nur vom Server aufgerufen. Ab Phase 2 trägt jeder Aufruf einen User-Agent mit Kontaktweg.
+- Die Fahrplanauskunft wird nur vom Server aufgerufen. Ab Phase 2 trägt jeder Aufruf einen User-Agent mit Kontaktweg. Tests ersetzen sie durch feste Fälle, siehe [AGENTS.md](../AGENTS.md). Ein nachgebauter HAFAS-Server entsteht nicht.
 - Neue Wörter, die im [Glossar](../GLOSSARY.md) schon ein anderes Wort haben, werden nicht eingeführt. Jede Phase liefert sichtbare Texte auf Deutsch und Englisch. Die Fachwörter in der Diskussion bleiben die deutschen aus dem Glossar. Auf Englisch heißt passt Fits, passt nicht Doesn't fit, unklar Unclear, und die heutige Verbindung Today's connection.
 
 ## Anmerkungen, die für alle Phasen gelten

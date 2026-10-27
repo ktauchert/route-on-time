@@ -34,7 +34,9 @@ Produktionscode entsteht aus einem fehlschlagenden Test.
 2. Den kleinsten Code schreiben, der ihn grün macht.
 3. Aufräumen, ohne das Verhalten zu ändern.
 
-Kein Produktionscode ohne einen Test, der ihn verlangt hat. Ein Test prüft Verhalten: Stand, Vorgabe, Suche, Zeilensicherheit, Texte. Er prüft keine Klassenstruktur. Auskunftsaufrufe im Test sind gestellt, nicht das echte HAFAS.
+Kein Produktionscode ohne einen Test, der ihn verlangt hat. Ein Test prüft Verhalten: Stand, Vorgabe, Suche, Zeilensicherheit, Texte. Er prüft keine Klassenstruktur.
+
+Die Fahrplanauskunft wird im Test durch eine eingesetzte Stellvertreterin ersetzt, nicht durch einen nachgebauten HAFAS-Server. `vbb-hafas` spricht die mobile Schnittstelle. Die ist kein Vertrag, den wir nachbauen. Der Browser ruft sie ohnehin nicht auf. Die Stellvertreterin liefert feste Fälle: pünktlich zur Ankunftsuhrzeit, Verspätung über die Uhrzeit hinaus, Ausfall, leere Liste, Fehler. Dieselben Fälle prüft der Stand. Ein Aufruf der echten Auskunft gehört in keinen Testlauf und nicht in die CI.
 
 Werkzeug ist Vitest. `npm test` führt die Tests aus. `npm run lint` muss daneben grün sein.
 

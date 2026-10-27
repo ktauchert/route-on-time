@@ -1,30 +1,38 @@
 import { Suspense } from "react";
-import { cookies } from "next/headers";
+import { connection } from "next/server";
+import { redirect } from "next/navigation";
+import { SignedIn } from "@/components/signed-in";
 import { StartScreen } from "@/components/start-screen";
-import { resolveLanguage, type ThemeName } from "@/lib/preferences";
+import { readAppearance } from "@/lib/appearance";
+import { currentUser } from "@/lib/supabase/server";
 
-function StartFallback() {
+function HomeFallback() {
+  return <StartScreen language="de" theme="paper" centered />;
+}
+
+async function HomeSession() {
+  await connection();
+  const user = await currentUser();
+
+  if (!user) {
+    redirect("/anmelden");
+  }
+
+  const { language, theme } = await readAppearance();
+
   return (
-    <StartScreen language="de" theme="paper" />
+    <StartScreen language={language} theme={theme} centered>
+      <SignedIn language={language} />
+    </StartScreen>
   );
 }
 
-async function StoredStart() {
-  const jar = await cookies();
-  const language = resolveLanguage(jar.get("language")?.value);
-  const storedTheme = jar.get("theme")?.value;
-  const theme: ThemeName | undefined =
-    storedTheme === "paper" || storedTheme === "stone" ? storedTheme : undefined;
-
-  return (
-    <StartScreen language={language} theme={theme} />
-  );
-}
+export const instant = false;
 
 export default function Home() {
   return (
-    <Suspense fallback={<StartFallback />}>
-      <StoredStart />
+    <Suspense fallback={<HomeFallback />}>
+      <HomeSession />
     </Suspense>
   );
 }

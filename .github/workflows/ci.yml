@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install, test, lint
+        run: |
+          if [ ! -f package.json ]; then
+            echo "No package.json yet. Phase 0 has not added the app."
+            exit 0
+          fi
+          npm ci
+          npm test
+          npm run lint

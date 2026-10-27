@@ -6,8 +6,8 @@
 
 ## Aufgaben
 
-1. Next.js mit App Router, TypeScript und Tailwind anlegen. Vitest ist das Testwerkzeug. Der erste Test ist rot, bevor die Startseite existiert. `npm test` und `npm run lint` erfüllen `.github/workflows/ci.yml`.
-2. shadcn/ui einrichten und eine erste Komponente einsetzen, damit der Weg steht. Den shadcn-MCP erst danach anschließen, siehe [MCP](../mcp.md).
+1. Next.js mit `npx create-next-app@latest .` anlegen, in diesem Ordner. Vitest mit `npm create vitest@latest`. Der erste Test ist rot, bevor die Startseite existiert. `npm test` und `npm run lint` erfüllen `.github/workflows/ci.yml`.
+2. shadcn/ui mit `npx shadcn@latest init` einrichten, Basis `stone`, und eine erste Komponente mit `npx shadcn@latest add` einsetzen. Den shadcn-MCP erst danach anschließen, siehe [MCP](../mcp.md).
 3. Eine Startseite mit dem Namen „Route on Time“.
 4. Ein Web-App-Manifest mit diesem Namen, `start_url` und `display: standalone`, plus den Meta-Eintrag, den iOS für eine eigene App braucht. Icons folgen in [Phase 8](./08-pwa.md).
 5. Oberflächensprache Deutsch und Englisch, beide in dieser Phase. Beim ersten Öffnen ist Deutsch aktiv. Ein Schalter liegt auf der Seite und wechselt die Sprache. Die Browsersprache ändert daran nichts. Die Wahl steht in einem Cookie auf dem Gerät und übersteht ein Neuladen. Sichtbarer Text liegt nicht fest verdrahtet in den Komponenten.

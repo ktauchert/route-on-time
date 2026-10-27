@@ -20,6 +20,12 @@ Jede Phase hat genau ein GitHub-Issue. Der Branch heißt wie die Phase, von `mai
 
 Ein Durchgang bearbeitet ein Issue auf seinem Branch. Der Pull Request geht nach `main` und nennt die Issue-Nummer. Der nächste Branch entsteht erst, wenn der vorherige in `main` ist. Kein zweites Issue auf demselben Branch.
 
+## Gerüste
+
+Ein neues Werkzeug beginnt mit seinem offiziellen Create- oder Init-Befehl. `package.json` wird nicht von Hand angelegt, und die Abhängigkeiten werden nicht zuerst mit einem nackten `npm install` hereingeholt. Die Befehle fragen die Entscheidungen ab und legen die Dateien an, die das Werkzeug erwartet.
+
+Die App liegt in diesem Repo, nicht in einem Unterordner. Der Ordner enthält schon Docs. Trotzdem startet Next.js mit `npx create-next-app@latest .`. Danach shadcn mit `npx shadcn@latest init`, Basis `stone`. Vitest mit `npm create vitest@latest`. Spätere Werkzeuge genauso: Supabase über die CLI, shadcn-Komponenten über `npx shadcn@latest add`.
+
 ## TDD
 
 Produktionscode entsteht aus einem fehlschlagenden Test.

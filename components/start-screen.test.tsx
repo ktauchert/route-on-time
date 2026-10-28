@@ -52,6 +52,6 @@ describe("StartScreen", () => {
     );
 
     expect(container.firstElementChild?.className).toContain("flex-col");
-    expect(container.firstElementChild?.className).toContain("md:grid-cols-2");
+    expect(container.firstElementChild?.className).toContain("max-w-7xl");
   });
 });

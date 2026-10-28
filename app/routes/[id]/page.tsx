@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
-import { DeleteRoute } from "@/components/delete-route";
 import { RouteForm } from "@/components/route-form";
 import { SignedIn } from "@/components/signed-in";
 import { StartScreen } from "@/components/start-screen";
@@ -40,15 +39,17 @@ async function EditRoute({
   return (
     <StartScreen language={language} theme={theme} board>
       <SignedIn language={language} />
-      <RouteCheck
-        language={language}
-        routeId={route.id}
-        check={check}
-        chosenToken={chosenToken}
-        saveFailed={params.error === "check"}
-      />
-      <RouteForm language={language} route={route} failed={params.error === "1"} />
-      <DeleteRoute id={route.id} language={language} />
+      <div className="flex max-w-2xl flex-col gap-8">
+        <RouteCheck
+          language={language}
+          routeId={route.id}
+          check={check}
+          chosenToken={chosenToken}
+          saveFailed={params.error === "check"}
+          now={new Date().toISOString()}
+        />
+        <RouteForm language={language} route={route} failed={params.error === "1"} />
+      </div>
     </StartScreen>
   );
 }

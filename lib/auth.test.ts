@@ -37,15 +37,19 @@ describe("registerFailureMessage", () => {
 
 describe("authRedirect", () => {
   it("sends a visitor without a session to the sign-in page", () => {
-    expect(authRedirect("/", false)).toBe("/sign-in");
+    expect(authRedirect("/routes", false)).toBe("/sign-in");
+  });
+
+  it("lets a visitor open the landing page", () => {
+    expect(authRedirect("/", false)).toBeNull();
   });
 
   it("sends a signed-in person away from the sign-in page", () => {
-    expect(authRedirect("/sign-in", true)).toBe("/");
+    expect(authRedirect("/sign-in", true)).toBe("/routes");
   });
 
-  it("leaves a signed-in person on the home page", () => {
-    expect(authRedirect("/", true)).toBeNull();
+  it("sends a signed-in person from the landing to the route list", () => {
+    expect(authRedirect("/", true)).toBe("/routes");
   });
 
   it("leaves a visitor on the sign-in page", () => {
@@ -61,7 +65,7 @@ describe("authRedirect", () => {
   });
 
   it("sends a signed-in person away from registration", () => {
-    expect(authRedirect("/register", true)).toBe("/");
+    expect(authRedirect("/register", true)).toBe("/routes");
   });
 });
 

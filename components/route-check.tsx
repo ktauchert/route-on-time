@@ -1,6 +1,8 @@
 import { checkRoute, chooseConnection, clearConnection } from "@/app/routes/actions";
+import { StatusPill, TripProgress } from "@/components/trip-progress";
 import { Button } from "@/components/ui/button";
 import type { CheckResult, LegView, Suggestion } from "@/lib/check";
+import { countedTrip, tripMoment } from "@/lib/moment";
 import {
   checkCopy,
   checkedAtLabel,
@@ -79,14 +81,23 @@ export function RouteCheck({
   check,
   chosenToken,
   saveFailed,
+  now,
 }: {
   language: Language;
   routeId: string;
   check: CheckResult | null;
   chosenToken: string | null;
   saveFailed: boolean;
+  now?: string;
 }) {
   const text = checkCopy(language);
+  const trip = check
+    ? countedTrip(
+        { todayRefreshToken: chosenToken, todayServiceDate: check.serviceDate },
+        check,
+      )
+    : null;
+  const moment = trip && now ? tripMoment(trip.legs, new Date(now)) : null;
 
   return (
     <section className="flex flex-col gap-4">
@@ -106,13 +117,14 @@ export function RouteCheck({
             </p>
           ) : null}
           <p>{checkedAtLabel(language, check.checkedAt)}</p>
-          <p role="status">
-            <span>{text.status[check.status]}</span>
-            {check.reason ? <span> {text.reason[check.reason]}</span> : null}
-          </p>
+          <div className="flex flex-col gap-2">
+            <StatusPill language={language} status={check.status} />
+            {check.reason ? <p>{text.reason[check.reason]}</p> : null}
+            {moment?.progress != null ? <TripProgress language={language} progress={moment.progress} /> : null}
+          </div>
           {check.noAlternative ? <p>{text.noAlternative}</p> : null}
           {check.alternative ? (
-            <div className="flex flex-col gap-1 text-sm">
+            <div className="flex flex-col gap-2 rounded-xl border border-foreground/20 bg-card p-3 text-sm">
               <h2 className="text-base font-medium">{text.alternative}</h2>
               {check.alternative.refreshToken === chosenToken ? <p>{text.chosen}</p> : null}
               <SuggestionLegs
@@ -135,7 +147,7 @@ export function RouteCheck({
             {check.suggestions.map((suggestion) => {
               const chosen = suggestion.refreshToken === chosenToken;
               return (
-                <li key={suggestion.refreshToken || suggestion.legs[0]?.departure} className="flex flex-col gap-1 text-sm">
+                <li key={suggestion.refreshToken || suggestion.legs[0]?.departure} className="flex flex-col gap-2 rounded-xl border bg-card p-3 text-sm">
                   {chosen ? <p>{text.chosen}</p> : null}
                   <SuggestionLegs
                     suggestion={suggestion}
@@ -148,7 +160,7 @@ export function RouteCheck({
                       <input type="hidden" name="id" value={routeId} />
                       <input type="hidden" name="refreshToken" value={suggestion.refreshToken} />
                       <input type="hidden" name="serviceDate" value={check.serviceDate} />
-                      <Button type="submit" variant="outline">
+                      <Button type="submit" size="sm" variant="outline">
                         {text.choose}
                       </Button>
                     </form>

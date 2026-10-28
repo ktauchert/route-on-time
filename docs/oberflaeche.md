@@ -8,7 +8,7 @@ Einzelheiten der Phasen bleiben in den Phasendateien. Diese Seite hält, was jed
 
 **Mobil.** Eine Spalte. Die Routenliste ist eine eigene Ansicht, eine Route eine weitere. Der Sprach- und der Themenschalter liegen oben.
 
-**Desktop.** Die Übersicht zeigt die Routen als Liste. Anlegen und Bearbeiten sind eigene Seiten und nutzen dasselbe Formular. Anmeldung bleibt eine einzelne Spalte in der Mitte.
+**Desktop.** Die Übersicht zeigt die Routen als Liste. Anlegen und Bearbeiten sind eigene Seiten und nutzen dasselbe Formular. Anmeldung bleibt eine einzelne Spalte in der Mitte. Der Inhalt liegt mittig und endet bei 1280 px. Liste, Formular und Prüfung bleiben schmaler, siehe [ADR 0010](./adr/0010-lesespalte.md) und die [Reise](./reise.md).
 
 Eine Phase, die eine Ansicht verändert, liefert beide Layouts mit.
 
@@ -31,4 +31,6 @@ Nur im Mobil-Layout, über der unteren rechten Ecke. Ein Tipp öffnet:
 
 Ein Tipp auf eine heutige Route öffnet sie. Ab Phase 4 startet derselbe Eintrag „Jetzt prüfen“ für diese Route. Gilt heute keine Route, bleibt nur Neue Route.
 
-Das Desktop-Layout hat keinen Schnellstart. Liste und geöffnete Route liegen nebeneinander.
+Das Desktop-Layout hat keinen Schnellstart. Die geöffnete Route ist eine eigene Seite.
+
+Gäste sehen auf `/` eine kurze Landing. Auf dem Handy sind das ein Satz und die Knöpfe Anmelden und Registrieren. Ab 768 px kommt dazu, wofür die App da ist. Eine angemeldete Person kommt von `/` auf die Routenliste.

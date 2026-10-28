@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { copy } from "@/lib/messages";
 import type { Language, ThemeName } from "@/lib/preferences";
@@ -19,6 +20,7 @@ export function StartScreen({
   children,
   centered = false,
   board = false,
+  wordmarkHref = "/routes",
 }: {
   language: Language;
   theme?: ThemeName;
@@ -27,6 +29,7 @@ export function StartScreen({
   children?: ReactNode;
   centered?: boolean;
   board?: boolean;
+  wordmarkHref?: string;
 }) {
   const [currentLanguage, setCurrentLanguage] = useState(language);
   const [currentTheme, setCurrentTheme] = useState(theme);
@@ -50,6 +53,7 @@ export function StartScreen({
     <>
       <Button
         type="button"
+        size="sm"
         variant="outline"
         onClick={() => chooseLanguage(currentLanguage === "de" ? "en" : "de")}
       >
@@ -58,6 +62,7 @@ export function StartScreen({
       <div className="flex gap-2">
         <Button
           type="button"
+          size="sm"
           variant={currentTheme === "paper" ? "default" : "outline"}
           aria-pressed={currentTheme === "paper"}
           onClick={() => chooseTheme("paper")}
@@ -66,6 +71,7 @@ export function StartScreen({
         </Button>
         <Button
           type="button"
+          size="sm"
           variant={currentTheme === "stone" ? "default" : "outline"}
           aria-pressed={currentTheme === "stone"}
           onClick={() => chooseTheme("stone")}
@@ -76,31 +82,19 @@ export function StartScreen({
     </>
   );
 
+  const frame = centered
+    ? "mx-auto flex min-h-svh w-full max-w-md flex-col gap-8 px-4 py-6"
+    : "mx-auto flex min-h-svh w-full max-w-7xl flex-col gap-8 px-4 py-6 md:px-8 md:py-10";
+
   return (
-    <main
-      className={
-        board
-          ? "flex min-h-svh flex-col gap-6 p-4 md:p-8"
-          : centered
-            ? "mx-auto flex min-h-svh w-full max-w-md flex-col gap-8 p-6"
-            : "flex min-h-svh flex-col gap-8 p-6 md:grid md:grid-cols-2 md:items-end md:p-12"
-      }
-    >
-      {board ? (
-        <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <h1 className="text-3xl font-semibold tracking-tight">Route on Time</h1>
-          <div className="flex flex-col gap-3 md:items-end">{switches}</div>
-        </header>
-      ) : (
-        <>
-          <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">Route on Time</h1>
-          <div className="flex flex-col gap-3 md:items-end">
-            {switches}
-            {children}
-          </div>
-        </>
-      )}
-      {board ? children : null}
+    <main className={frame}>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-lg font-medium tracking-tight">
+          <Link href={wordmarkHref}>Route on Time</Link>
+        </h1>
+        <div className="flex flex-wrap items-center gap-2">{switches}</div>
+      </header>
+      {centered || board ? children : <div className="flex flex-col gap-6">{children}</div>}
     </main>
   );
 }

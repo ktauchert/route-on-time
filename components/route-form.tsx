@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { saveRoute, searchLines } from "@/app/routes/actions";
+import { DeleteRoute } from "@/components/delete-route";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { defaultWeekdays, weekdays, type Weekday } from "@/lib/route";
@@ -55,9 +56,11 @@ export function RouteForm({
   }
 
   const sameStop = Boolean(start && destination && start.id === destination.id);
+  const formId = route ? `route-${route.id}` : "route-new";
 
   return (
-    <form action={saveRoute} className="flex flex-col gap-4">
+    <>
+    <form id={formId} action={saveRoute} className="flex max-w-2xl flex-col gap-4">
       {route ? <input type="hidden" name="id" value={route.id} /> : null}
       <input type="hidden" name="startId" value={start?.id ?? ""} />
       <input type="hidden" name="startName" value={start?.name ?? ""} />
@@ -156,17 +159,19 @@ export function RouteForm({
         ))}
       </fieldset>
 
-      <div className="flex gap-2">
-        <Button type="submit" disabled={sameStop}>
-          {isGerman ? "Speichern" : "Save"}
-        </Button>
-        {route ? (
-          <Button variant="outline" asChild>
-            <Link href="/routes">{isGerman ? "Abbrechen" : "Cancel"}</Link>
-          </Button>
-        ) : null}
-      </div>
     </form>
+    <div className="flex max-w-2xl flex-wrap items-center gap-2">
+      <Button type="submit" form={formId} size="sm" disabled={sameStop}>
+        {isGerman ? "Speichern" : "Save"}
+      </Button>
+      {route ? (
+        <Button size="sm" variant="outline" asChild>
+          <Link href="/routes">{isGerman ? "Abbrechen" : "Cancel"}</Link>
+        </Button>
+      ) : null}
+      {route ? <DeleteRoute id={route.id} language={language} /> : null}
+    </div>
+    </>
   );
 }
 

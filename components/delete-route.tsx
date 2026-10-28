@@ -16,7 +16,7 @@ export function DeleteRoute({ id, language }: { id: string; language: Language }
 
   if (!confirming) {
     return (
-      <Button type="button" variant="outline" onClick={() => setConfirming(true)}>
+      <Button type="button" size="sm" variant="outline" onClick={() => setConfirming(true)}>
         {text.ask}
       </Button>
     );
@@ -26,7 +26,7 @@ export function DeleteRoute({ id, language }: { id: string; language: Language }
     <form action={deleteRoute} className="flex flex-col items-start gap-2">
       <p>{text.question}</p>
       <input type="hidden" name="id" value={id} />
-      <Button type="submit" variant="destructive">
+      <Button type="submit" size="sm" variant="destructive">
         {text.confirm}
       </Button>
     </form>

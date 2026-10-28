@@ -219,6 +219,23 @@ describe("RouteCheck", () => {
     expect(screen.getByText("Rest of the trip from S Griebnitzsee")).toBeTruthy();
   });
 
+  it("shows how far an underway connection has got", () => {
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={fitting}
+        chosenToken={null}
+        saveFailed={false}
+        now="2026-10-26T07:26:00.000Z"
+      />,
+    );
+
+    expect(screen.getByRole("progressbar", { name: "Unterwegs" }).getAttribute("aria-valuenow")).toBe(
+      "50",
+    );
+  });
+
   it("says when a check could not be saved", () => {
     render(
       <RouteCheck language="de" routeId="1" check={fitting} chosenToken={null} saveFailed />,

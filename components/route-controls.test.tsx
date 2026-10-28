@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { DeleteRoute } from "./delete-route";
 import { QuickStart } from "./quick-start";
 import { RouteForm } from "./route-form";
+import { RouteIndex } from "./route-index";
 import type { StoredRoute } from "@/lib/route";
 
 describe("DeleteRoute", () => {
@@ -64,6 +65,28 @@ const route: StoredRoute = {
   todayServiceDate: null,
 };
 
+describe("RouteIndex", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("shows the minutes until departure that were known when the page loaded", () => {
+    render(
+      <RouteIndex
+        language="de"
+        routes={[route]}
+        today={[]}
+        missingTable={false}
+        glances={{ "1": { status: "fits", upcomingMinutes: 25, progress: null } }}
+      />,
+    );
+
+    expect(screen.getByText("Abfahrt in 25 min")).toBeTruthy();
+    expect(screen.getByText("passt")).toBeTruthy();
+    expect(screen.getByText("Ankunft 09:00")).toBeTruthy();
+  });
+});
+
 describe("RouteForm", () => {
   afterEach(() => {
     cleanup();
@@ -73,5 +96,7 @@ describe("RouteForm", () => {
     render(<RouteForm language="de" route={route} failed={false} />);
 
     expect(screen.getByRole("link", { name: "Abbrechen" }).getAttribute("href")).toBe("/routes");
+    expect(screen.getByRole("button", { name: "Speichern" }).getAttribute("data-size")).toBe("sm");
+    expect(screen.getByRole("button", { name: "Löschen" }).getAttribute("data-size")).toBe("sm");
   });
 });

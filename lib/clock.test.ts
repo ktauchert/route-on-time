@@ -107,6 +107,28 @@ describe("isDue", () => {
     expect(isDue(subject({ intervalMinutes: 1, previous: ready }), now)).toBe(true);
   });
 
+  it("follows the chosen connection when an earlier saved journey has already arrived", () => {
+    const earlier = trip("2026-10-26T18:36:00+01:00");
+    earlier.refreshToken = "earlier";
+    earlier.legs[0]!.departure = "2026-10-26T17:50:00+01:00";
+    const chosen = trip("2026-10-26T18:49:00+01:00");
+    chosen.refreshToken = "chosen";
+    chosen.legs[0]!.departure = "2026-10-26T18:11:00+01:00";
+    const saved = previous("2026-10-26T17:00:00+01:00", earlier);
+    saved.suggestions = [earlier, chosen];
+    const route = subject({
+      previous: saved,
+      route: {
+        ...subject().route,
+        arrival: "19:00",
+        todayRefreshToken: "chosen",
+        todayServiceDate: "2026-10-26",
+      },
+    });
+
+    expect(isDue(route, new Date("2026-10-26T18:38:00+01:00"))).toBe(true);
+  });
+
   it("stops once today's connection has arrived", () => {
     const arrived = previous("2026-10-26T06:00:00+01:00", trip("2026-10-26T08:20:00+01:00"));
     expect(isDue(subject({ previous: arrived }), during)).toBe(false);

@@ -7,6 +7,7 @@ import {
   type Auskunft,
   type CheckResult,
   type RouteToCheck,
+  type Suggestion,
 } from "./check";
 import { appliesOn } from "./route";
 
@@ -44,6 +45,21 @@ function sameDay(previous: CheckResult | null, now: Date) {
   return previous?.serviceDate === berlinDateString(now) ? previous : null;
 }
 
+function countedConnection(route: ClockRoute, now: Date): Suggestion | null {
+  const today = sameDay(route.previous, now);
+  if (!today) return null;
+
+  const token = route.route.todayRefreshToken;
+  if (token && route.route.todayServiceDate === berlinDateString(now)) {
+    const chosen = [today.connection, today.alternative, ...today.suggestions].find(
+      (item) => item?.refreshToken === token,
+    );
+    return chosen ?? null;
+  }
+
+  return today.connection;
+}
+
 export function isDue(route: ClockRoute, now: Date) {
   if (!appliesOn(route.route.weekdays, now)) return false;
 
@@ -53,7 +69,7 @@ export function isDue(route: ClockRoute, now: Date) {
     if (elapsed < route.intervalMinutes * 60 * 1000) return false;
   }
 
-  const connection = today?.connection ?? null;
+  const connection = countedConnection(route, now);
   const position = connection ? travelPosition(connection, now) : null;
   if (position?.kind === "done") return false;
 

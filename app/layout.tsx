@@ -17,7 +17,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="de" className={cn("font-sans", geist.variable)}>
+    <html
+      lang="de"
+      className={cn("font-sans", geist.variable)}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>

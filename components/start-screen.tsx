@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { copy } from "@/lib/messages";
 import type { Language, ThemeName } from "@/lib/preferences";
@@ -16,11 +16,15 @@ export function StartScreen({
   theme,
   onLanguage,
   onTheme,
+  children,
+  centered = false,
 }: {
   language: Language;
   theme?: ThemeName;
   onLanguage?: (language: Language) => void;
   onTheme?: (theme: ThemeName) => void;
+  children?: ReactNode;
+  centered?: boolean;
 }) {
   const [currentLanguage, setCurrentLanguage] = useState(language);
   const [currentTheme, setCurrentTheme] = useState(theme);
@@ -41,7 +45,13 @@ export function StartScreen({
   }
 
   return (
-    <main className="flex min-h-svh flex-col gap-8 p-6 md:grid md:grid-cols-2 md:items-end md:p-12">
+    <main
+      className={
+        centered
+          ? "mx-auto flex min-h-svh w-full max-w-md flex-col gap-8 p-6"
+          : "flex min-h-svh flex-col gap-8 p-6 md:grid md:grid-cols-2 md:items-end md:p-12"
+      }
+    >
       <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
         Route on Time
       </h1>
@@ -71,6 +81,7 @@ export function StartScreen({
             Stone
           </Button>
         </div>
+        {children}
       </div>
     </main>
   );

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createVbbHafas } from "vbb-hafas";
+import { checkRow, runCheck, type Auskunft, type CheckResult, type CheckStatus, type Suggestion } from "@/lib/check";
 import { findPlaces, routeProblems, storedRouteName, type StoredRoute, type Weekday } from "@/lib/route";
 import { createClient, currentUser } from "@/lib/supabase/server";
 
@@ -11,6 +12,26 @@ const userAgent =
 
 function hafas() {
   return createVbbHafas(userAgent);
+}
+
+function liveAuskunft(): Auskunft {
+  const client = hafas();
+  return {
+    async journeys(from, to, arrival) {
+      const result = await client.journeys(from, to, { arrival, results: 5, language: "de" });
+      return {
+        journeys: result.journeys ?? [],
+        realtimeDataUpdatedAt: result.realtimeDataUpdatedAt ?? null,
+      };
+    },
+    async refreshJourney(refreshToken) {
+      const result = await client.refreshJourney(refreshToken, { language: "de" });
+      return {
+        journey: result.journey ?? null,
+        realtimeDataUpdatedAt: result.realtimeDataUpdatedAt ?? null,
+      };
+    },
+  };
 }
 
 export async function searchStops(query: string) {
@@ -126,7 +147,7 @@ export async function listRoutes(): Promise<{ routes: StoredRoute[]; missingTabl
   const { data, error } = await supabase
     .from("routes")
     .select(
-      "id, name, start_id, start_name, destination_id, destination_name, arrival, weekdays, transfer_minutes, max_transfers, line_id, line_name",
+      "id, name, start_id, start_name, destination_id, destination_name, arrival, weekdays, transfer_minutes, max_transfers, line_id, line_name, today_refresh_token, today_service_date",
     )
     .order("created_at", { ascending: false });
 
@@ -147,6 +168,106 @@ export async function listRoutes(): Promise<{ routes: StoredRoute[]; missingTabl
       maxTransfers: row.max_transfers,
       lineId: row.line_id,
       lineName: row.line_name,
+      todayRefreshToken: row.today_refresh_token,
+      todayServiceDate: row.today_service_date,
     })),
+  };
+}
+
+function routeToCheck(route: StoredRoute) {
+  return {
+    startId: route.startId,
+    destinationId: route.destinationId,
+    arrival: route.arrival,
+    weekdays: route.weekdays,
+    transferMinutes: route.transferMinutes,
+    maxTransfers: route.maxTransfers,
+    lineId: route.lineId,
+    lineName: route.lineName,
+    todayRefreshToken: route.todayRefreshToken,
+    todayServiceDate: route.todayServiceDate,
+  };
+}
+
+async function saveCheck(userId: string, routeId: string, result: CheckResult) {
+  const supabase = await createClient();
+  if (!supabase) return false;
+
+  const { error } = await supabase
+    .from("route_checks")
+    .upsert(checkRow(userId, routeId, result), { onConflict: "route_id,service_date" });
+
+  return !error;
+}
+
+export async function checkRoute(formData: FormData) {
+  const user = await currentUser();
+  if (!user) redirect("/sign-in");
+
+  const id = String(formData.get("id") ?? "");
+  const { routes } = await listRoutes();
+  const route = routes.find((item) => item.id === id);
+  if (!route) redirect("/routes");
+
+  const result = await runCheck(routeToCheck(route), new Date(), liveAuskunft());
+  const saved = await saveCheck(user.id, id, result);
+  redirect(saved ? `/routes/${id}` : `/routes/${id}?error=check`);
+}
+
+export async function chooseConnection(formData: FormData) {
+  const user = await currentUser();
+  if (!user) redirect("/sign-in");
+
+  const id = String(formData.get("id") ?? "");
+  const refreshToken = String(formData.get("refreshToken") ?? "");
+  const serviceDate = String(formData.get("serviceDate") ?? "");
+  const supabase = await createClient();
+  if (!supabase || !refreshToken || !serviceDate) redirect(`/routes/${id}`);
+
+  await supabase
+    .from("routes")
+    .update({ today_refresh_token: refreshToken, today_service_date: serviceDate })
+    .eq("id", id);
+  redirect(`/routes/${id}`);
+}
+
+export async function clearConnection(formData: FormData) {
+  const user = await currentUser();
+  if (!user) redirect("/sign-in");
+
+  const id = String(formData.get("id") ?? "");
+  const supabase = await createClient();
+  if (!supabase) redirect(`/routes/${id}`);
+
+  await supabase
+    .from("routes")
+    .update({ today_refresh_token: null, today_service_date: null })
+    .eq("id", id);
+  redirect(`/routes/${id}`);
+}
+
+const statuses: CheckStatus[] = ["fits", "doesnt-fit", "unclear"];
+
+export async function latestCheck(routeId: string): Promise<CheckResult | null> {
+  const supabase = await createClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from("route_checks")
+    .select("service_date, status, reason, checked_at, connection, suggestions")
+    .eq("route_id", routeId)
+    .order("checked_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data || !statuses.includes(data.status)) return null;
+
+  return {
+    serviceDate: data.service_date,
+    status: data.status,
+    reason: data.reason,
+    checkedAt: data.checked_at,
+    connection: (data.connection ?? null) as Suggestion | null,
+    suggestions: (data.suggestions ?? []) as Suggestion[],
   };
 }

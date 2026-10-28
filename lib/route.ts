@@ -123,6 +123,8 @@ export type StoredRoute = {
   maxTransfers: number | null;
   lineId: string | null;
   lineName: string | null;
+  todayRefreshToken: string | null;
+  todayServiceDate: string | null;
 };
 
 export function routesForToday(routes: StoredRoute[], date = new Date()) {

@@ -18,7 +18,9 @@ Jede Phase hat genau ein GitHub-Issue. Der Branch heißt wie die Phase, von `mai
 | [#8](https://github.com/ktauchert/route-on-time/issues/8) | `phase-7-uhr` |
 | [#9](https://github.com/ktauchert/route-on-time/issues/9) | `phase-8-pwa` |
 
-Ein Durchgang bearbeitet ein Issue auf seinem Branch. Der Pull Request geht nach `main` und nennt die Issue-Nummer. Der nächste Branch entsteht erst, wenn der vorherige in `main` ist. Kein zweites Issue auf demselben Branch.
+Ein Durchgang bearbeitet ein Issue auf seinem Branch. Der Pull Request geht nach `main` und nennt die Issue-Nummer. Der nächste Branch entsteht erst, wenn der vorherige in `main` ist. Kein zweites Issue auf demselben Branch, außer die beiden Phasen ausdrücklich zusammen gebaut werden.
+
+Phase 3 und 4 teilen sich `phase-3-vorschlaege`. Derselbe Knopf zeigt die Vorschläge und den Stand. Der Pull Request schließt die Issues #4 und #5. Der Branch `phase-4-stand` wird nicht angelegt.
 
 ## Gerüste
 

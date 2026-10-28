@@ -39,9 +39,8 @@ describe("QuickStart", () => {
     expect(screen.getByRole("link", { name: "Neue Route" }).getAttribute("href")).toBe(
       "/routes/new",
     );
-    expect(screen.getByRole("link", { name: "Alex → Zoo" }).getAttribute("href")).toBe(
-      "/routes/1",
-    );
+    const today = screen.getByRole("button", { name: "Alex → Zoo" });
+    expect(today.closest("form")?.querySelector("input[name=id]")?.getAttribute("value")).toBe("1");
     expect(screen.getByRole("button", { name: "Schnellstart" }).parentElement?.className).toContain(
       "md:hidden",
     );
@@ -61,6 +60,8 @@ const route: StoredRoute = {
   maxTransfers: null,
   lineId: null,
   lineName: null,
+  todayRefreshToken: null,
+  todayServiceDate: null,
 };
 
 describe("RouteForm", () => {

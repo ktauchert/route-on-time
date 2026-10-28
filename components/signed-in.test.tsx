@@ -13,6 +13,9 @@ describe("SignedIn", () => {
 
     expect(screen.getByText("Du bist angemeldet.")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Abmelden" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Einstellungen" }).getAttribute("href")).toBe(
+      "/settings",
+    );
     expect(screen.queryByLabelText("Ankunftsuhrzeit")).toBeNull();
   });
 

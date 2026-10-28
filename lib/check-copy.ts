@@ -74,6 +74,16 @@ export function delayLabel(seconds: number | null) {
   return minutes > 0 ? `+${minutes} min` : `${minutes} min`;
 }
 
+export function checkedAtLabel(language: Language, checkedAt: string) {
+  const time = new Intl.DateTimeFormat(language === "de" ? "de-DE" : "en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone: "Europe/Berlin",
+  }).format(new Date(checkedAt));
+  return language === "de" ? `Geprüft um ${time}` : `Checked at ${time}`;
+}
+
 export function serviceDayLabel(language: Language, serviceDate: string) {
   const prefix = language === "de" ? "Gesucht für" : "Searched for";
   const locale = language === "de" ? "de-DE" : "en-GB";

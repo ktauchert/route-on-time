@@ -65,6 +65,7 @@ describe("RouteCheck", () => {
 
     expect(screen.getByRole("button", { name: "Jetzt prüfen" })).toBeTruthy();
     expect(screen.getByText("passt")).toBeTruthy();
+    expect(screen.getByText("Geprüft um 07:00")).toBeTruthy();
     expect(screen.getByText(/Montag/)).toBeTruthy();
     expect(screen.getByText("Fußweg")).toBeTruthy();
     expect(screen.getByText("S7")).toBeTruthy();

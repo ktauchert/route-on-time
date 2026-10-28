@@ -56,6 +56,10 @@ describe("authRedirect", () => {
     expect(authRedirect("/register", false)).toBeNull();
   });
 
+  it("leaves the clock route open so the secret can be checked there", () => {
+    expect(authRedirect("/api/clock", false)).toBeNull();
+  });
+
   it("sends a signed-in person away from registration", () => {
     expect(authRedirect("/register", true)).toBe("/");
   });

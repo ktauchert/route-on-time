@@ -36,6 +36,9 @@ export function LoginForm({
         />
       </label>
       <Button type="submit">{text.submit}</Button>
+      <a href="/registrieren" className="text-sm underline-offset-4 hover:underline">
+        {language === "de" ? "Registrieren" : "Register"}
+      </a>
     </form>
   );
 }

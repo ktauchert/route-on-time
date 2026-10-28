@@ -14,16 +14,18 @@ describe("LoginForm", () => {
     expect(screen.getByLabelText("E-Mail")).toBeTruthy();
     expect(screen.getByLabelText("Passwort")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Anmelden" })).toBeTruthy();
-    expect(screen.queryByRole("link", { name: /registr/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /registr/i })).toBeNull();
+    expect(screen.getByRole("link", { name: "Registrieren" }).getAttribute("href")).toBe(
+      "/registrieren",
+    );
     expect(screen.queryByText("E-Mail oder Passwort stimmt nicht.")).toBeNull();
   });
 
-  it("shows the same failure in English without a sign-up path", () => {
+  it("shows the same failure in English and still links to registration", () => {
     render(<LoginForm language="en" failed />);
 
     expect(screen.getByText("Email or password is incorrect.")).toBeTruthy();
-    expect(screen.queryByRole("link", { name: /sign up/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /sign up/i })).toBeNull();
+    expect(screen.getByRole("link", { name: "Register" }).getAttribute("href")).toBe(
+      "/registrieren",
+    );
   });
 });

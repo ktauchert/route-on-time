@@ -6,7 +6,7 @@ Beantwortet am 27. Oktober 2026, bis auf die Nutzungsregeln.
 2. **Vorgabe.** Eine Route kann davon setzen, was sie braucht: Ankunft vor einer Uhrzeit, Mindestzeit beim Umstieg, höchstens eine Zahl Umstiege, eine bestimmte Linie, die heute gewählte Verbindung. Ohne Ankunftsuhrzeit und ohne heutige Verbindung weiß die Uhr nicht, wann sie prüfen soll.
 3. **Unterwegs.** Die Prüfung sucht neu ab dem nächsten Halt, sobald eine Fahrt angetreten ist.
 4. **Meldungen.** Zuerst die offene App. Push auf das gesperrte Telefon kommt später.
-5. **Wer sich anmelden darf.** In diesem Stand nur der Eigentümer.
+5. **Wer sich anmelden darf.** Die App hat Anmeldung und Registrierung. Die Mail-Bestätigung bleibt aus, solange das im Supabase-Projekt so eingestellt ist. Ein vergessenes Passwort setzt das Dashboard zurück.
 
 Offen, weil die Unterlage noch fehlt:
 

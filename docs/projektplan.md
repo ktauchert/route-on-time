@@ -15,7 +15,7 @@ Beantwortet am 27. Oktober 2026. Offen bleibt nur, was die Nutzungsregeln der of
 3. Geprüft wird vor der Abfahrt und, sobald eine Fahrt angetreten ist, neu ab dem nächsten Halt.
 4. Der Stand erscheint in der offenen App. Push kommt später.
 5. Die Fahrplanauskunft im Prototyp ist `vbb-hafas` auf dem Next.js-Server. Die offizielle API wird parallel beantragt und erst nach den Nutzungsregeln angeschlossen.
-6. Angemeldet ist in diesem Stand nur der Eigentümer. Das Konto entsteht im Supabase-Dashboard, die App hat keine Registrierung. Das Projekt liegt in Frankfurt. Eine falsche Anmeldung sagt nur, dass E-Mail oder Passwort nicht stimmt.
+6. Angemeldet wird mit E-Mail und Passwort. Die App hat Anmeldung und Registrierung. Das Projekt liegt in Frankfurt. Eine falsche Anmeldung sagt nur, dass E-Mail oder Passwort nicht stimmt.
 7. Die App heißt sichtbar „Route on Time“.
 8. Die Oberfläche spricht Deutsch und Englisch. Beim ersten Öffnen ist Deutsch aktiv. Ein Schalter liegt auf jeder Seite, auch vor der Anmeldung. Die Browsersprache ändert nichts. Die Wahl bleibt auf dem Gerät und ist kein Feld am Nutzer. Jede Phase liefert beide Sprachen mit. Die Begriffe im Glossar bleiben Deutsch. Auf Englisch heißt passt Fits, passt nicht Doesn't fit, unklar Unclear, und die heutige Verbindung Today's connection. Die App liegt in diesem Projektordner.
 

@@ -1,7 +1,14 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { checkCopy, delayLabel, serviceDayLabel } from "./check-copy";
-import { checkRow, runCheck, searchDay, type Auskunft, type RawJourney } from "./check";
+import {
+  checkRow,
+  runCheck,
+  searchDay,
+  todayFromCheck,
+  type Auskunft,
+  type RawJourney,
+} from "./check";
 import type { Weekday } from "./route";
 
 const mondayMorning = new Date("2026-10-26T07:00:00+01:00");
@@ -414,6 +421,192 @@ describe("runCheck", () => {
   });
 });
 
+describe("alternative", () => {
+  const late = (token: string) =>
+    journey(token, [ride({ arrival: "2026-10-26T09:20:00+01:00" })]);
+
+  it("does not search further when a suggestion already fits", async () => {
+    const calls: string[] = [];
+    const client: Auskunft = {
+      async journeys() {
+        calls.push("journeys");
+        return { journeys: [onTime()], realtimeDataUpdatedAt: null, earlierRef: "page-2" };
+      },
+      async earlier() {
+        calls.push("earlier");
+        return { journeys: [onTime("alt")], realtimeDataUpdatedAt: null };
+      },
+      async refreshJourney() {
+        throw new Error("unused");
+      },
+    };
+
+    const result = await runCheck(route(), mondayMorning, client);
+
+    expect(result.status).toBe("fits");
+    expect(calls).toEqual(["journeys"]);
+    expect(result.alternative).toBeNull();
+    expect(todayFromCheck(result)).toBeNull();
+  });
+
+  it("takes the first later page connection that meets the arrival, not the second of the first five", async () => {
+    const seen: { ref: string | null; arrival: Date | null } = { ref: null, arrival: null };
+    const client: Auskunft = {
+      async journeys(_from, _to, arrival) {
+        seen.arrival = arrival;
+        return {
+          journeys: [late("first"), late("second")],
+          realtimeDataUpdatedAt: null,
+          earlierRef: "page-2",
+        };
+      },
+      async earlier(_from, _to, ref) {
+        seen.ref = ref;
+        return {
+          journeys: [
+            late("still-late"),
+            journey("alt", [
+              ride({
+                line: { id: "line-re1", name: "RE1" },
+                arrival: "2026-10-26T08:40:00+01:00",
+              }),
+            ]),
+          ],
+          realtimeDataUpdatedAt: null,
+        };
+      },
+      async refreshJourney() {
+        throw new Error("unused");
+      },
+    };
+
+    const result = await runCheck(route(), mondayMorning, client);
+
+    expect(seen.arrival?.toISOString()).toBe("2026-10-26T08:00:00.000Z");
+    expect(seen.ref).toBe("page-2");
+    expect(result.alternative?.refreshToken).toBe("alt");
+    expect(result.alternative?.legs[0]?.lineName).toBe("RE1");
+    expect(result.suggestions.map((item) => item.refreshToken)).toEqual(["first", "second"]);
+    expect(result.status).toBe("fits");
+    expect(result.connection?.refreshToken).toBe("alt");
+    expect(todayFromCheck(result)).toEqual({ refreshToken: "alt", serviceDate: "2026-10-26" });
+    expect(checkRow("user-1", "route-1", result).alternative).toMatchObject({ refreshToken: "alt" });
+  });
+
+  it("does not search further when the first list is empty", async () => {
+    const calls: string[] = [];
+    const client: Auskunft = {
+      async journeys() {
+        calls.push("journeys");
+        return { journeys: [], realtimeDataUpdatedAt: null, earlierRef: "page-2" };
+      },
+      async earlier() {
+        calls.push("earlier");
+        return { journeys: [onTime("alt")], realtimeDataUpdatedAt: null };
+      },
+      async refreshJourney() {
+        throw new Error("unused");
+      },
+    };
+
+    const result = await runCheck(route(), mondayMorning, client);
+
+    expect(calls).toEqual(["journeys"]);
+    expect(result.status).toBe("doesnt-fit");
+    expect(result.reason).toBe("empty");
+    expect(result.alternative).toBeNull();
+    expect(result.noAlternative).toBe(false);
+  });
+
+  it("keeps doesnt-fit when the next page also misses the requirement", async () => {
+    const client: Auskunft = {
+      async journeys() {
+        return { journeys: [late("first")], realtimeDataUpdatedAt: null, earlierRef: "page-2" };
+      },
+      async earlier() {
+        return { journeys: [late("still-late")], realtimeDataUpdatedAt: null };
+      },
+      async refreshJourney() {
+        throw new Error("unused");
+      },
+    };
+
+    const result = await runCheck(route(), mondayMorning, client);
+
+    expect(result.status).toBe("doesnt-fit");
+    expect(result.reason).toBe("arrival");
+    expect(result.alternative).toBeNull();
+    expect(result.noAlternative).toBe(true);
+    expect(result.connection?.refreshToken).toBe("first");
+    expect(todayFromCheck(result)).toBeNull();
+  });
+
+  it("skips a further connection that misses the line or has too many transfers", async () => {
+    const direct = journey("direct", [
+      ride({ line: { id: "line-s2", name: "S2" }, arrival: "2026-10-26T08:40:00+01:00" }),
+    ]);
+    const twoRides = journey("two", [
+      ride({
+        line: { id: "line-s2", name: "S2" },
+        destination: { name: "S Ostkreuz" },
+        arrival: "2026-10-26T08:20:00+01:00",
+      }),
+      ride({
+        origin: { name: "S Ostkreuz" },
+        departure: "2026-10-26T08:30:00+01:00",
+        arrival: "2026-10-26T08:40:00+01:00",
+        line: { id: "line-s2", name: "S2" },
+      }),
+    ]);
+    const client: Auskunft = {
+      async journeys() {
+        return {
+          journeys: [journey("u2", [ride({ line: { id: "line-u2", name: "U2" } })])],
+          realtimeDataUpdatedAt: null,
+          earlierRef: "page-2",
+        };
+      },
+      async earlier() {
+        return { journeys: [twoRides, direct], realtimeDataUpdatedAt: null };
+      },
+      async refreshJourney() {
+        throw new Error("unused");
+      },
+    };
+
+    const result = await runCheck(
+      route({ lineName: "S2", maxTransfers: 0 }),
+      mondayMorning,
+      client,
+    );
+
+    expect(result.alternative?.refreshToken).toBe("direct");
+    expect(result.status).toBe("fits");
+  });
+
+  it("says there is no alternative when the first page has no further ref", async () => {
+    const calls: string[] = [];
+    const client: Auskunft = {
+      async journeys() {
+        return { journeys: [late("first")], realtimeDataUpdatedAt: null, earlierRef: null };
+      },
+      async earlier() {
+        calls.push("earlier");
+        return { journeys: [onTime("alt")], realtimeDataUpdatedAt: null };
+      },
+      async refreshJourney() {
+        throw new Error("unused");
+      },
+    };
+
+    const result = await runCheck(route(), mondayMorning, client);
+
+    expect(calls).toEqual([]);
+    expect(result.noAlternative).toBe(true);
+    expect(result.status).toBe("doesnt-fit");
+  });
+});
+
 describe("checkCopy", () => {
   it("uses the domain status words in both languages", () => {
     expect(checkCopy("de").status.fits).toBe("passt");
@@ -454,6 +647,13 @@ describe("serviceDayLabel", () => {
 });
 
 describe("route check access", () => {
+  it("stores the alternative next to the check", () => {
+    const sql = readFileSync("supabase/migrations/20261028170000_route_check_alternative.sql", "utf8");
+
+    expect(sql).toContain("alternative jsonb");
+    expect(sql).toContain("no_alternative");
+  });
+
   it("limits a saved check to the signed-in user", () => {
     const sql = readFileSync("supabase/migrations/20261028160000_route_checks.sql", "utf8");
 

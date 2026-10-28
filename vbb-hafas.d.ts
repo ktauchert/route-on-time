@@ -26,8 +26,13 @@ declare module "vbb-hafas" {
     journeys: (
       from: string,
       to: string,
-      options: { arrival?: Date; results?: number; language?: string },
-    ) => Promise<{ journeys?: Journey[]; realtimeDataUpdatedAt?: number | null }>;
+      options: { arrival?: Date; earlierThan?: string; results?: number; language?: string },
+    ) => Promise<{
+      journeys?: Journey[];
+      earlierRef?: string | null;
+      laterRef?: string | null;
+      realtimeDataUpdatedAt?: number | null;
+    }>;
     refreshJourney: (
       refreshToken: string,
       options?: { language?: string },

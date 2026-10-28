@@ -2,7 +2,15 @@
 
 import { redirect } from "next/navigation";
 import { createVbbHafas } from "vbb-hafas";
-import { checkRow, runCheck, type Auskunft, type CheckResult, type CheckStatus, type Suggestion } from "@/lib/check";
+import {
+  checkRow,
+  runCheck,
+  todayFromCheck,
+  type Auskunft,
+  type CheckResult,
+  type CheckStatus,
+  type Suggestion,
+} from "@/lib/check";
 import { findPlaces, routeProblems, storedRouteName, type StoredRoute, type Weekday } from "@/lib/route";
 import { createClient, currentUser } from "@/lib/supabase/server";
 
@@ -22,6 +30,15 @@ function liveAuskunft(): Auskunft {
       return {
         journeys: result.journeys ?? [],
         realtimeDataUpdatedAt: result.realtimeDataUpdatedAt ?? null,
+        earlierRef: result.earlierRef ?? null,
+      };
+    },
+    async earlier(from, to, earlierRef) {
+      const result = await client.journeys(from, to, { earlierThan: earlierRef, results: 5, language: "de" });
+      return {
+        journeys: result.journeys ?? [],
+        realtimeDataUpdatedAt: result.realtimeDataUpdatedAt ?? null,
+        earlierRef: result.earlierRef ?? null,
       };
     },
     async refreshJourney(refreshToken) {
@@ -211,7 +228,21 @@ export async function checkRoute(formData: FormData) {
 
   const result = await runCheck(routeToCheck(route), new Date(), liveAuskunft());
   const saved = await saveCheck(user.id, id, result);
-  redirect(saved ? `/routes/${id}` : `/routes/${id}?error=check`);
+  const today = todayFromCheck(result);
+  const remembered = today ? await rememberToday(id, today.refreshToken, today.serviceDate) : true;
+  redirect(saved && remembered ? `/routes/${id}` : `/routes/${id}?error=check`);
+}
+
+async function rememberToday(id: string, refreshToken: string, serviceDate: string) {
+  const supabase = await createClient();
+  if (!supabase) return false;
+
+  const { error } = await supabase
+    .from("routes")
+    .update({ today_refresh_token: refreshToken, today_service_date: serviceDate })
+    .eq("id", id);
+
+  return !error;
 }
 
 export async function chooseConnection(formData: FormData) {
@@ -254,7 +285,7 @@ export async function latestCheck(routeId: string): Promise<CheckResult | null> 
 
   const { data, error } = await supabase
     .from("route_checks")
-    .select("service_date, status, reason, checked_at, connection, suggestions")
+    .select("service_date, status, reason, checked_at, connection, suggestions, alternative, no_alternative")
     .eq("route_id", routeId)
     .order("checked_at", { ascending: false })
     .limit(1)
@@ -269,5 +300,7 @@ export async function latestCheck(routeId: string): Promise<CheckResult | null> 
     checkedAt: data.checked_at,
     connection: (data.connection ?? null) as Suggestion | null,
     suggestions: (data.suggestions ?? []) as Suggestion[],
+    alternative: (data.alternative ?? null) as Suggestion | null,
+    noAlternative: Boolean(data.no_alternative),
   };
 }

@@ -24,6 +24,8 @@ const copy = {
     walking: "Fußweg",
     transfer: "Umstieg",
     cancelledLeg: "Fällt aus",
+    alternative: "Alternative",
+    noAlternative: "Es gibt keine Alternative.",
   },
   en: {
     status: { fits: "Fits", "doesnt-fit": "Doesn't fit", unclear: "Unclear" },
@@ -46,6 +48,8 @@ const copy = {
     walking: "Walk",
     transfer: "Transfer",
     cancelledLeg: "Cancelled",
+    alternative: "Alternative",
+    noAlternative: "There is no alternative.",
   },
 } as const;
 

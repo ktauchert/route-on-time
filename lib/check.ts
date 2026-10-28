@@ -56,6 +56,8 @@ export type CheckResult = {
   checkedAt: string;
   connection: Suggestion | null;
   suggestions: Suggestion[];
+  alternative: Suggestion | null;
+  noAlternative: boolean;
 };
 
 export type RouteToCheck = {
@@ -71,12 +73,15 @@ export type RouteToCheck = {
   todayServiceDate: string | null;
 };
 
+export type JourneyPage = {
+  journeys: RawJourney[];
+  realtimeDataUpdatedAt: number | null;
+  earlierRef?: string | null;
+};
+
 export type Auskunft = {
-  journeys: (
-    from: string,
-    to: string,
-    arrival: Date,
-  ) => Promise<{ journeys: RawJourney[]; realtimeDataUpdatedAt: number | null }>;
+  journeys: (from: string, to: string, arrival: Date) => Promise<JourneyPage>;
+  earlier?: (from: string, to: string, earlierRef: string) => Promise<JourneyPage>;
   refreshJourney: (
     refreshToken: string,
   ) => Promise<{ journey: RawJourney | null; realtimeDataUpdatedAt: number | null }>;
@@ -236,6 +241,8 @@ function judge(
       reason: "empty",
       connection: null,
       suggestions: [],
+      alternative: null,
+      noAlternative: false,
     };
   }
 
@@ -244,7 +251,16 @@ function judge(
   const departure = connection.legs[0]?.departure ?? "";
 
   if (isStale(departure, realtimeUpdatedAt, now)) {
-    return { serviceDate, checkedAt, status: "unclear", reason: "stale", connection, suggestions };
+    return {
+      serviceDate,
+      checkedAt,
+      status: "unclear",
+      reason: "stale",
+      connection,
+      suggestions,
+      alternative: null,
+      noAlternative: false,
+    };
   }
 
   const reason = problemOf(connection, route, serviceDate);
@@ -255,6 +271,8 @@ function judge(
     reason,
     connection,
     suggestions,
+    alternative: null,
+    noAlternative: false,
   };
 }
 
@@ -266,6 +284,53 @@ function unanswered(serviceDate: string, checkedAt: string): CheckResult {
     reason: "no-answer",
     connection: null,
     suggestions: [],
+    alternative: null,
+    noAlternative: false,
+  };
+}
+
+async function withAlternative(
+  route: RouteToCheck,
+  now: Date,
+  auskunft: Auskunft,
+  result: CheckResult,
+  earlierRef: string | null | undefined,
+): Promise<CheckResult> {
+  if (result.status !== "doesnt-fit" || result.suggestions.length === 0) {
+    return { ...result, alternative: null, noAlternative: false };
+  }
+
+  if (!earlierRef || !auskunft.earlier) {
+    return { ...result, alternative: null, noAlternative: true };
+  }
+
+  let page: JourneyPage;
+  try {
+    page = await auskunft.earlier(route.startId, route.destinationId, earlierRef);
+  } catch {
+    return { ...result, alternative: null, noAlternative: true };
+  }
+
+  const seen = new Set(result.suggestions.map((item) => item.refreshToken).filter(Boolean));
+  const alternative = page.journeys
+    .map(toSuggestion)
+    .filter((item): item is Suggestion => item !== null)
+    .find((item) => {
+      if (!item.refreshToken || seen.has(item.refreshToken)) return false;
+      if (problemOf(item, route, result.serviceDate) !== null) return false;
+      const departure = item.legs[0]?.departure ?? "";
+      return !isStale(departure, page.realtimeDataUpdatedAt, now);
+    });
+
+  if (!alternative) return { ...result, alternative: null, noAlternative: true };
+
+  return {
+    ...result,
+    status: "fits",
+    reason: null,
+    connection: alternative,
+    alternative,
+    noAlternative: false,
   };
 }
 
@@ -287,7 +352,8 @@ export async function runCheck(route: RouteToCheck, now: Date, auskunft: Auskunf
       route.destinationId,
       berlinInstant(serviceDate, route.arrival),
     );
-    return judge(found.journeys, found.realtimeDataUpdatedAt, route, serviceDate, now, checkedAt);
+    const judged = judge(found.journeys, found.realtimeDataUpdatedAt, route, serviceDate, now, checkedAt);
+    return withAlternative(route, now, auskunft, judged, found.earlierRef);
   } catch {
     return unanswered(serviceDate, checkedAt);
   }
@@ -303,5 +369,13 @@ export function checkRow(userId: string, routeId: string, result: CheckResult) {
     checked_at: result.checkedAt,
     connection: result.connection,
     suggestions: result.suggestions,
+    alternative: result.alternative,
+    no_alternative: result.noAlternative,
   };
+}
+
+export function todayFromCheck(result: CheckResult) {
+  const refreshToken = result.alternative?.refreshToken;
+  if (!refreshToken) return null;
+  return { refreshToken, serviceDate: result.serviceDate };
 }

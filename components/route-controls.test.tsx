@@ -3,6 +3,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { DeleteRoute } from "./delete-route";
 import { QuickStart } from "./quick-start";
+import { RouteForm } from "./route-form";
+import type { StoredRoute } from "@/lib/route";
 
 describe("DeleteRoute", () => {
   afterEach(() => {
@@ -43,5 +45,32 @@ describe("QuickStart", () => {
     expect(screen.getByRole("button", { name: "Schnellstart" }).parentElement?.className).toContain(
       "md:hidden",
     );
+  });
+});
+
+const route: StoredRoute = {
+  id: "1",
+  name: "zur Arbeit",
+  startId: "a",
+  startName: "Alex",
+  zielId: "b",
+  zielName: "Zoo",
+  arrival: "09:00",
+  weekdays: ["mon"],
+  transferMinutes: null,
+  maxTransfers: null,
+  lineId: null,
+  lineName: null,
+};
+
+describe("RouteForm", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("cancels an edit back to the route index", () => {
+    render(<RouteForm language="de" route={route} failed={false} />);
+
+    expect(screen.getByRole("link", { name: "Abbrechen" }).getAttribute("href")).toBe("/routen");
   });
 });

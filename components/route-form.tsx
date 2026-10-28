@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { saveRoute, searchLines } from "@/app/routen/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -155,9 +156,16 @@ export function RouteForm({
         ))}
       </fieldset>
 
-      <Button type="submit" disabled={sameStop}>
-        {de ? "Speichern" : "Save"}
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" disabled={sameStop}>
+          {de ? "Speichern" : "Save"}
+        </Button>
+        {route ? (
+          <Button variant="outline" asChild>
+            <Link href="/routen">{de ? "Abbrechen" : "Cancel"}</Link>
+          </Button>
+        ) : null}
+      </div>
     </form>
   );
 }

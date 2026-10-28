@@ -10,6 +10,8 @@ const fitting: CheckResult = {
   reason: null,
   checkedAt: "2026-10-26T06:00:00.000Z",
   connection: { refreshToken: "on-time", legs: [] },
+  alternative: null,
+  noAlternative: false,
   suggestions: [
     {
       refreshToken: "on-time",
@@ -113,6 +115,70 @@ describe("RouteCheck", () => {
     expect(screen.getByText("Heutige Verbindung")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Wahl aufheben" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Als heutige Verbindung" })).toBeNull();
+  });
+
+  it("shows an alternative from the further search", () => {
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={{
+          ...fitting,
+          alternative: {
+            refreshToken: "alt",
+            legs: [
+              {
+                walking: false,
+                lineId: "line-re1",
+                lineName: "RE1",
+                originName: "S+U Alexanderplatz",
+                destinationName: "S Bernau Bhf",
+                departure: "2026-10-26T07:40:00+01:00",
+                arrival: "2026-10-26T08:40:00+01:00",
+                departureDelaySeconds: null,
+                arrivalDelaySeconds: null,
+                cancelled: false,
+              },
+            ],
+          },
+        }}
+        chosenToken="alt"
+        saveFailed={false}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Alternative" })).toBeTruthy();
+    expect(screen.getByText("RE1")).toBeTruthy();
+    expect(screen.getByText(/S Bernau Bhf/)).toBeTruthy();
+  });
+
+  it("says when the further search has no alternative", () => {
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={{ ...fitting, status: "doesnt-fit", reason: "arrival", noAlternative: true }}
+        chosenToken={null}
+        saveFailed={false}
+      />,
+    );
+
+    expect(screen.getByText("Es gibt keine Alternative.")).toBeTruthy();
+  });
+
+  it("does not use the no-alternative sentence for an empty list", () => {
+    render(
+      <RouteCheck
+        language="en"
+        routeId="1"
+        check={{ ...fitting, status: "doesnt-fit", reason: "empty", connection: null, suggestions: [] }}
+        chosenToken={null}
+        saveFailed={false}
+      />,
+    );
+
+    expect(screen.getByText("There is no connection for this arrival.")).toBeTruthy();
+    expect(screen.queryByText("There is no alternative.")).toBeNull();
   });
 
   it("says when a check could not be saved", () => {

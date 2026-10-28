@@ -26,7 +26,7 @@ function liveAuskunft(): Auskunft {
   const client = hafas();
   return {
     async journeys(from, to, arrival) {
-      const result = await client.journeys(from, to, { arrival, results: 5, language: "de" });
+      const result = await client.journeys(from, to, { arrival, results: 5, language: "de", stopovers: true });
       return {
         journeys: result.journeys ?? [],
         realtimeDataUpdatedAt: result.realtimeDataUpdatedAt ?? null,
@@ -34,7 +34,12 @@ function liveAuskunft(): Auskunft {
       };
     },
     async earlier(from, to, earlierRef) {
-      const result = await client.journeys(from, to, { earlierThan: earlierRef, results: 5, language: "de" });
+      const result = await client.journeys(from, to, {
+        earlierThan: earlierRef,
+        results: 5,
+        language: "de",
+        stopovers: true,
+      });
       return {
         journeys: result.journeys ?? [],
         realtimeDataUpdatedAt: result.realtimeDataUpdatedAt ?? null,
@@ -42,7 +47,7 @@ function liveAuskunft(): Auskunft {
       };
     },
     async refreshJourney(refreshToken) {
-      const result = await client.refreshJourney(refreshToken, { language: "de" });
+      const result = await client.refreshJourney(refreshToken, { language: "de", stopovers: true });
       return {
         journey: result.journey ?? null,
         realtimeDataUpdatedAt: result.realtimeDataUpdatedAt ?? null,
@@ -226,7 +231,10 @@ export async function checkRoute(formData: FormData) {
   const route = routes.find((item) => item.id === id);
   if (!route) redirect("/routes");
 
-  const result = await runCheck(routeToCheck(route), new Date(), liveAuskunft());
+  const previous = await latestCheck(id);
+  const result = await runCheck(routeToCheck(route), new Date(), liveAuskunft(), previous);
+  if (!result.searched) redirect(`/routes/${id}`);
+
   const saved = await saveCheck(user.id, id, result);
   const today = todayFromCheck(result);
   const remembered = today ? await rememberToday(id, today.refreshToken, today.serviceDate) : true;
@@ -285,7 +293,9 @@ export async function latestCheck(routeId: string): Promise<CheckResult | null> 
 
   const { data, error } = await supabase
     .from("route_checks")
-    .select("service_date, status, reason, checked_at, connection, suggestions, alternative, no_alternative")
+    .select(
+      "service_date, status, reason, checked_at, connection, suggestions, alternative, no_alternative, search_from_name",
+    )
     .eq("route_id", routeId)
     .order("checked_at", { ascending: false })
     .limit(1)
@@ -302,5 +312,7 @@ export async function latestCheck(routeId: string): Promise<CheckResult | null> 
     suggestions: (data.suggestions ?? []) as Suggestion[],
     alternative: (data.alternative ?? null) as Suggestion | null,
     noAlternative: Boolean(data.no_alternative),
+    searched: true,
+    searchFromName: data.search_from_name,
   };
 }

@@ -12,6 +12,8 @@ const fitting: CheckResult = {
   connection: { refreshToken: "on-time", legs: [] },
   alternative: null,
   noAlternative: false,
+  searched: true,
+  searchFromName: null,
   suggestions: [
     {
       refreshToken: "on-time",
@@ -20,8 +22,11 @@ const fitting: CheckResult = {
           walking: true,
           lineId: null,
           lineName: null,
+          originId: null,
           originName: "S+U Alexanderplatz",
+          destinationId: null,
           destinationName: "S+U Alexanderplatz",
+          stopovers: [],
           departure: "2026-10-26T08:02:00+01:00",
           arrival: "2026-10-26T08:08:00+01:00",
           departureDelaySeconds: null,
@@ -32,8 +37,11 @@ const fitting: CheckResult = {
           walking: false,
           lineId: "line-s7",
           lineName: "S7",
+          originId: null,
           originName: "S+U Alexanderplatz",
+          destinationId: null,
           destinationName: "S+U Zoologischer Garten",
+          stopovers: [],
           departure: "2026-10-26T08:10:00+01:00",
           arrival: "2026-10-26T08:50:00+01:00",
           departureDelaySeconds: 120,
@@ -131,8 +139,11 @@ describe("RouteCheck", () => {
                 walking: false,
                 lineId: "line-re1",
                 lineName: "RE1",
+                originId: null,
                 originName: "S+U Alexanderplatz",
+                destinationId: null,
                 destinationName: "S Bernau Bhf",
+                stopovers: [],
                 departure: "2026-10-26T07:40:00+01:00",
                 arrival: "2026-10-26T08:40:00+01:00",
                 departureDelaySeconds: null,
@@ -179,6 +190,32 @@ describe("RouteCheck", () => {
 
     expect(screen.getByText("There is no connection for this arrival.")).toBeTruthy();
     expect(screen.queryByText("There is no alternative.")).toBeNull();
+  });
+
+  it("names the stop where the rest of the trip starts", () => {
+    const { rerender } = render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={{ ...fitting, searchFromName: "S Griebnitzsee" }}
+        chosenToken={null}
+        saveFailed={false}
+      />,
+    );
+
+    expect(screen.getByText("Restweg ab S Griebnitzsee")).toBeTruthy();
+
+    rerender(
+      <RouteCheck
+        language="en"
+        routeId="1"
+        check={{ ...fitting, searchFromName: "S Griebnitzsee" }}
+        chosenToken={null}
+        saveFailed={false}
+      />,
+    );
+
+    expect(screen.getByText("Rest of the trip from S Griebnitzsee")).toBeTruthy();
   });
 
   it("says when a check could not be saved", () => {

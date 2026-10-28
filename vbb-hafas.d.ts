@@ -5,8 +5,13 @@ declare module "vbb-hafas" {
     walking?: boolean;
     cancelled?: boolean;
     line?: { id?: string; name?: string } | null;
-    origin?: { name?: string } | null;
-    destination?: { name?: string } | null;
+    origin?: { id?: string; name?: string } | null;
+    destination?: { id?: string; name?: string } | null;
+    stopovers?: Array<{
+      stop?: { id?: string; name?: string } | null;
+      departure?: string | null;
+      arrival?: string | null;
+    }>;
     departure?: string | null;
     plannedDeparture?: string | null;
     departureDelay?: number | null;
@@ -26,7 +31,13 @@ declare module "vbb-hafas" {
     journeys: (
       from: string,
       to: string,
-      options: { arrival?: Date; earlierThan?: string; results?: number; language?: string },
+      options: {
+        arrival?: Date;
+        earlierThan?: string;
+        results?: number;
+        language?: string;
+        stopovers?: boolean;
+      },
     ) => Promise<{
       journeys?: Journey[];
       earlierRef?: string | null;
@@ -35,7 +46,7 @@ declare module "vbb-hafas" {
     }>;
     refreshJourney: (
       refreshToken: string,
-      options?: { language?: string },
+      options?: { language?: string; stopovers?: boolean },
     ) => Promise<{ journey?: Journey | null; realtimeDataUpdatedAt?: number | null }>;
   };
 

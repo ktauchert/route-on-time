@@ -6,8 +6,12 @@ import {
   runCheck,
   searchDay,
   todayFromCheck,
+  travelPosition,
   type Auskunft,
+  type CheckResult,
+  type LegView,
   type RawJourney,
+  type Suggestion,
 } from "./check";
 import type { Weekday } from "./route";
 
@@ -604,6 +608,252 @@ describe("alternative", () => {
     expect(calls).toEqual([]);
     expect(result.noAlternative).toBe(true);
     expect(result.status).toBe("doesnt-fit");
+  });
+});
+
+function viewedLeg(overrides: Partial<LegView> = {}): LegView {
+  return {
+    walking: false,
+    lineId: null,
+    lineName: "S7",
+    originId: "start-stop",
+    originName: "Potsdam Hbf",
+    destinationId: "griebnitzsee",
+    destinationName: "S Griebnitzsee",
+    departure: "2026-10-26T08:10:00+01:00",
+    arrival: "2026-10-26T08:40:00+01:00",
+    departureDelaySeconds: null,
+    arrivalDelaySeconds: null,
+    cancelled: false,
+    stopovers: [],
+    ...overrides,
+  };
+}
+
+const carriedTrip: Suggestion = {
+  refreshToken: "carried",
+  legs: [
+    viewedLeg(),
+    viewedLeg({
+      originId: "griebnitzsee",
+      originName: "S Griebnitzsee",
+      destinationId: "bernau",
+      destinationName: "S Bernau",
+      departure: "2026-10-26T08:50:00+01:00",
+      arrival: "2026-10-26T09:20:00+01:00",
+      lineName: "S2",
+    }),
+  ],
+};
+
+function carriedStand(): CheckResult {
+  return {
+    serviceDate: "2026-10-26",
+    status: "fits",
+    reason: null,
+    checkedAt: "2026-10-26T06:00:00.000Z",
+    connection: carriedTrip,
+    suggestions: [carriedTrip],
+    alternative: null,
+    noAlternative: false,
+    searched: true,
+    searchFromName: null,
+  };
+}
+
+const rawTrip: RawJourney = {
+  refreshToken: "chosen",
+  legs: [
+    {
+      origin: { id: "start-stop", name: "Potsdam Hbf" },
+      destination: { id: "griebnitzsee", name: "S Griebnitzsee" },
+      departure: "2026-10-26T08:10:00+01:00",
+      arrival: "2026-10-26T08:40:00+01:00",
+      line: { name: "S7" },
+    },
+    {
+      origin: { id: "griebnitzsee", name: "S Griebnitzsee" },
+      destination: { id: "bernau", name: "S Bernau" },
+      departure: "2026-10-26T08:50:00+01:00",
+      arrival: "2026-10-26T09:20:00+01:00",
+      line: { name: "S2" },
+    },
+  ],
+};
+
+describe("travelPosition", () => {
+  it("is before the trip until the first departure", () => {
+    expect(travelPosition(carriedTrip, new Date("2026-10-26T08:00:00+01:00")).kind).toBe("before");
+  });
+
+  it("names the next stop while a leg is underway", () => {
+    expect(travelPosition(carriedTrip, new Date("2026-10-26T08:20:00+01:00"))).toEqual({
+      kind: "next-stop",
+      id: "griebnitzsee",
+      name: "S Griebnitzsee",
+    });
+  });
+
+  it("names the upcoming stopover instead of the leg destination", () => {
+    const withStop = {
+      ...carriedTrip,
+      legs: [
+        viewedLeg({
+          stopovers: [{ id: "wannsee", name: "S Wannsee", departure: "2026-10-26T08:25:00+01:00", arrival: "2026-10-26T08:24:00+01:00" }],
+        }),
+        carriedTrip.legs[1],
+      ],
+    };
+
+    expect(travelPosition(withStop, new Date("2026-10-26T08:20:00+01:00"))).toEqual({
+      kind: "next-stop",
+      id: "wannsee",
+      name: "S Wannsee",
+    });
+  });
+
+  it("names the transfer stop between two legs", () => {
+    expect(travelPosition(carriedTrip, new Date("2026-10-26T08:45:00+01:00"))).toEqual({
+      kind: "transfer",
+      id: "griebnitzsee",
+      name: "S Griebnitzsee",
+    });
+  });
+
+  it("is done once the last leg has arrived", () => {
+    expect(travelPosition(carriedTrip, new Date("2026-10-26T09:20:00+01:00")).kind).toBe("done");
+  });
+});
+
+describe("underway", () => {
+  function recording(journeys: RawJourney[] = [onTime()], earlierRef: string | null = null) {
+    const seen: { from: string | null; to: string | null; earlierFrom: string | null } = {
+      from: null,
+      to: null,
+      earlierFrom: null,
+    };
+    const calls: string[] = [];
+    const client: Auskunft = {
+      async journeys(from, to) {
+        calls.push("journeys");
+        seen.from = from;
+        seen.to = to;
+        return { journeys, realtimeDataUpdatedAt: null, earlierRef };
+      },
+      async earlier(from) {
+        calls.push("earlier");
+        seen.earlierFrom = from;
+        return {
+          journeys: [journey("alt", [ride({ arrival: "2026-10-26T08:40:00+01:00", line: { name: "RE1" } })])],
+          realtimeDataUpdatedAt: null,
+        };
+      },
+      async refreshJourney() {
+        calls.push("refresh");
+        return { journey: rawTrip, realtimeDataUpdatedAt: null };
+      },
+    };
+    return { seen, calls, client };
+  }
+
+  it("searches from the route start before departure and leaves that start unchanged", async () => {
+    const { seen, client } = recording();
+    const saved = route();
+
+    const result = await runCheck(saved, new Date("2026-10-26T08:00:00+01:00"), client, carriedStand());
+
+    expect(seen.from).toBe("start");
+    expect(seen.to).toBe("destination");
+    expect(saved.startId).toBe("start");
+    expect(result.searchFromName).toBeNull();
+  });
+
+  it("searches the rest of the trip from the next stop while the first leg is underway", async () => {
+    const { seen, client } = recording();
+
+    const result = await runCheck(route(), new Date("2026-10-26T08:20:00+01:00"), client, carriedStand());
+
+    expect(seen.from).toBe("griebnitzsee");
+    expect(seen.to).toBe("destination");
+    expect(result.searchFromName).toBe("S Griebnitzsee");
+  });
+
+  it("searches from the upcoming stopover", async () => {
+    const { seen, client } = recording();
+    const previous = carriedStand();
+    previous.connection = {
+      ...carriedTrip,
+      legs: [
+        viewedLeg({
+          stopovers: [{ id: "wannsee", name: "S Wannsee", departure: "2026-10-26T08:25:00+01:00", arrival: "" }],
+        }),
+        carriedTrip.legs[1]!,
+      ],
+    };
+
+    await runCheck(route(), new Date("2026-10-26T08:20:00+01:00"), client, previous);
+
+    expect(seen.from).toBe("wannsee");
+  });
+
+  it("searches from the transfer stop between two legs", async () => {
+    const { seen, client } = recording();
+
+    const result = await runCheck(route(), new Date("2026-10-26T08:45:00+01:00"), client, carriedStand());
+
+    expect(seen.from).toBe("griebnitzsee");
+    expect(result.searchFromName).toBe("S Griebnitzsee");
+  });
+
+  it("keeps the day's stand and does not search after the last arrival", async () => {
+    const { calls, client } = recording();
+
+    const result = await runCheck(
+      route({ arrival: "10:00" }),
+      new Date("2026-10-26T09:30:00+01:00"),
+      client,
+      carriedStand(),
+    );
+
+    expect(calls).toEqual([]);
+    expect(result.searched).toBe(false);
+    expect(result.status).toBe("fits");
+    expect(result.connection?.refreshToken).toBe("carried");
+  });
+
+  it("searches the rest from the next stop when today's connection is already underway", async () => {
+    const { seen, calls, client } = recording();
+
+    await runCheck(
+      route({ todayRefreshToken: "chosen", todayServiceDate: "2026-10-26" }),
+      new Date("2026-10-26T08:20:00+01:00"),
+      client,
+      carriedStand(),
+    );
+
+    expect(calls).toEqual(["refresh", "journeys"]);
+    expect(seen.from).toBe("griebnitzsee");
+  });
+
+  it("follows the same trip on the next check instead of returning to the start", async () => {
+    const { seen, client } = recording();
+    const first = await runCheck(route(), new Date("2026-10-26T08:20:00+01:00"), client, carriedStand());
+    seen.from = null;
+
+    await runCheck(route(), new Date("2026-10-26T08:25:00+01:00"), client, first);
+
+    expect(seen.from).toBe("griebnitzsee");
+  });
+
+  it("looks for an alternative of the rest of the trip from the next stop", async () => {
+    const late = journey("late", [ride({ arrival: "2026-10-26T09:20:00+01:00" })]);
+    const { seen, client } = recording([late], "page-2");
+
+    const result = await runCheck(route(), new Date("2026-10-26T08:20:00+01:00"), client, carriedStand());
+
+    expect(seen.earlierFrom).toBe("griebnitzsee");
+    expect(result.alternative?.refreshToken).toBe("alt");
+    expect(result.status).toBe("fits");
   });
 });
 

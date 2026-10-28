@@ -98,9 +98,12 @@ export function RouteCheck({
 
       {check ? (
         <div className="flex flex-col gap-3">
-          <p>
-            {serviceDayLabel(language, check.serviceDate)}
-          </p>
+          <p>{serviceDayLabel(language, check.serviceDate)}</p>
+          {check.searchFromName ? (
+            <p>
+              {text.restFrom} {check.searchFromName}
+            </p>
+          ) : null}
           <p role="status">
             <span>{text.status[check.status]}</span>
             {check.reason ? <span> {text.reason[check.reason]}</span> : null}

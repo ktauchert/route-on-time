@@ -1,30 +1,17 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
-import { SignedIn } from "@/components/signed-in";
-import { StartScreen } from "@/components/start-screen";
-import { readAppearance } from "@/lib/appearance";
 import { currentUser } from "@/lib/supabase/server";
 
 function HomeFallback() {
-  return <StartScreen language="de" theme="paper" centered />;
+  return null;
 }
 
 async function HomeSession() {
   await connection();
-  const user = await currentUser();
-
-  if (!user) {
-    redirect("/anmelden");
-  }
-
-  const { language, theme } = await readAppearance();
-
-  return (
-    <StartScreen language={language} theme={theme} centered>
-      <SignedIn language={language} />
-    </StartScreen>
-  );
+  if (!(await currentUser())) redirect("/sign-in");
+  redirect("/routes");
+  return null;
 }
 
 export const instant = false;

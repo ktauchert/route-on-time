@@ -35,11 +35,11 @@ export function registerFailureReason(error: { message: string; code?: string })
   return "failed";
 }
 
-const publicPaths = new Set(["/anmelden", "/registrieren"]);
+const publicPaths = new Set(["/sign-in", "/register"]);
 
 export function authRedirect(pathname: string, signedIn: boolean) {
   if (!signedIn && !publicPaths.has(pathname)) {
-    return "/anmelden";
+    return "/sign-in";
   }
 
   if (signedIn && publicPaths.has(pathname)) {
@@ -56,5 +56,5 @@ export function accountCreatedMessage(language: Language) {
 }
 
 export function confirmedSessionPath(exchanged: boolean) {
-  return exchanged ? "/" : "/anmelden?fehler=bestaetigung";
+  return exchanged ? "/" : "/sign-in?error=confirmation";
 }

@@ -47,3 +47,7 @@ Oberflächen prüft der Test, wo das Verhalten im Code liegt. Mobil- und Desktop
 GitHub Actions liegt in `.github/workflows/ci.yml` und läuft bei Push und Pull Request. Sobald `package.json` existiert, führt der Lauf `npm ci`, `npm test` und `npm run lint` aus. Rot heißt, die Änderung ist nicht fertig.
 
 Das Remote ist `https://github.com/ktauchert/route-on-time.git`. `main` ist der Stand, von dem die Phasen-Branches abgehen.
+
+## Sprache im Code
+
+Variablen, Funktionen, Methoden, Klassen, Dateipfade, URL-Routen, Datenbankspalten, Query-Keys und Kommentare im Code sind Englisch. Sichtbare Sätze bleiben in den Sprachkatalogen: Deutsch für `de`, Englisch für `en`. `GLOSSARY.md` bleibt Deutsch, das sind die Fachwörter der Domäne, keine Bezeichner im Code.

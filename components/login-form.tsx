@@ -1,4 +1,4 @@
-import { signIn } from "@/app/anmelden/actions";
+import { signIn } from "@/app/sign-in/actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { accountCreatedMessage, signInFailureMessage } from "@/lib/auth";
@@ -39,7 +39,7 @@ export function LoginForm({
         />
       </label>
       <Button type="submit">{text.submit}</Button>
-      <a href="/registrieren" className="text-sm underline-offset-4 hover:underline">
+      <a href="/register" className="text-sm underline-offset-4 hover:underline">
         {language === "de" ? "Registrieren" : "Register"}
       </a>
     </form>

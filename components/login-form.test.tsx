@@ -15,7 +15,7 @@ describe("LoginForm", () => {
     expect(screen.getByLabelText("Passwort")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Anmelden" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Registrieren" }).getAttribute("href")).toBe(
-      "/registrieren",
+      "/register",
     );
     expect(screen.queryByText("E-Mail oder Passwort stimmt nicht.")).toBeNull();
     expect(screen.queryByRole("status")).toBeNull();
@@ -26,7 +26,7 @@ describe("LoginForm", () => {
 
     expect(screen.getByText("Email or password is incorrect.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Register" }).getAttribute("href")).toBe(
-      "/registrieren",
+      "/register",
     );
   });
 

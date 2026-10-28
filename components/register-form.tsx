@@ -1,4 +1,4 @@
-import { signUp } from "@/app/registrieren/actions";
+import { signUp } from "@/app/register/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { registerFailureMessage, type RegisterFailure } from "@/lib/auth";
@@ -58,7 +58,7 @@ export function RegisterForm({
         />
       </label>
       <Button type="submit">{text.submit}</Button>
-      <a href="/anmelden" className="text-sm underline-offset-4 hover:underline">
+      <a href="/sign-in" className="text-sm underline-offset-4 hover:underline">
         {text.signIn}
       </a>
     </form>

@@ -8,7 +8,7 @@ Einzelheiten der Phasen bleiben in den Phasendateien. Diese Seite hält, was jed
 
 **Mobil.** Eine Spalte. Die Routenliste ist eine eigene Ansicht, eine Route eine weitere. Der Sprach- und der Themenschalter liegen oben.
 
-**Desktop.** Die Routenliste steht links, die geöffnete Route rechts: Formular, Vorschläge, Stand. Anmeldung bleibt eine einzelne Spalte in der Mitte. Dort gibt es keine zweite Spalte zum Füllen.
+**Desktop.** Die Übersicht zeigt die Routen als Liste. Anlegen und Bearbeiten sind eigene Seiten und nutzen dasselbe Formular. Anmeldung bleibt eine einzelne Spalte in der Mitte.
 
 Eine Phase, die eine Ansicht verändert, liefert beide Layouts mit.
 

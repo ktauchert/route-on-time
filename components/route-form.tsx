@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { saveRoute, searchLines, searchStops } from "@/app/routen/actions";
+import { useEffect, useRef, useState } from "react";
+import { saveRoute, searchLines } from "@/app/routen/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { defaultWeekdays, weekdays, type Weekday } from "@/lib/route";
+import { createStopSearch, type StopMatch } from "@/lib/stop-search";
 import type { Language } from "@/lib/preferences";
 import type { StoredRoute } from "@/lib/route";
 
@@ -25,10 +26,6 @@ export function RouteForm({
   failed: boolean;
 }) {
   const de = language === "de";
-  const [startQuery, setStartQuery] = useState("");
-  const [zielQuery, setZielQuery] = useState("");
-  const [startResults, setStartResults] = useState<Place[]>([]);
-  const [zielResults, setZielResults] = useState<Place[]>([]);
   const [start, setStart] = useState<Place | null>(
     route ? { id: route.startId, name: route.startName } : null,
   );
@@ -40,13 +37,6 @@ export function RouteForm({
     route?.lineId && route.lineName ? { id: route.lineId, name: route.lineName } : null,
   );
   const [days, setDays] = useState<Weekday[]>(route?.weekdays ?? [...defaultWeekdays]);
-
-  async function lookUp(query: string, target: "start" | "ziel") {
-    const places = await searchStops(query);
-    const next = places.map((place) => ({ id: place.id, name: place.name }));
-    if (target === "start") setStartResults(next);
-    else setZielResults(next);
-  }
 
   async function loadLines() {
     if (!start) return;
@@ -100,11 +90,7 @@ export function RouteForm({
 
       <PlaceField
         label={de ? "Start" : "Start"}
-        query={startQuery}
         selected={start}
-        results={startResults}
-        onQuery={setStartQuery}
-        onSearch={() => lookUp(startQuery, "start")}
         onSelect={(place) => {
           setStart(place);
           setLine(null);
@@ -113,11 +99,7 @@ export function RouteForm({
       />
       <PlaceField
         label={de ? "Ziel" : "Destination"}
-        query={zielQuery}
         selected={ziel}
-        results={zielResults}
-        onQuery={setZielQuery}
-        onSearch={() => lookUp(zielQuery, "ziel")}
         onSelect={setZiel}
       />
 
@@ -178,34 +160,47 @@ export function RouteForm({
 
 function PlaceField({
   label,
-  query,
   selected,
-  results,
-  onQuery,
-  onSearch,
   onSelect,
 }: {
   label: string;
-  query: string;
   selected: Place | null;
-  results: Place[];
-  onQuery: (value: string) => void;
-  onSearch: () => void;
   onSelect: (place: Place) => void;
 }) {
+  const [query, setQuery] = useState(selected?.name ?? "");
+  const [results, setResults] = useState<StopMatch[]>([]);
+  const search = useRef(
+    createStopSearch(async (value, signal) => {
+      const response = await fetch(`/api/halte?q=${encodeURIComponent(value)}`, { signal });
+      if (!response.ok) return [];
+      return (await response.json()) as StopMatch[];
+    }),
+  );
+
+  useEffect(() => {
+    if (selected && query.trim() === selected.name) return;
+    search.current(query, setResults);
+  }, [query, selected]);
+
   return (
     <div className="flex flex-col gap-2 text-sm">
       <label className="flex flex-col gap-1">
         {label}
-        <Input value={query} onChange={(event) => onQuery(event.target.value)} />
+        <Input value={query} onChange={(event) => setQuery(event.target.value)} />
       </label>
       {selected ? <p>{selected.name}</p> : null}
-      <Button type="button" variant="outline" onClick={onSearch}>
-        {label}
-      </Button>
       <div className="flex flex-col items-start gap-1">
         {results.map((place) => (
-          <Button key={place.id} type="button" variant="ghost" onClick={() => onSelect(place)}>
+          <Button
+            key={place.id}
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              onSelect(place);
+              setQuery(place.name);
+              setResults([]);
+            }}
+          >
             {place.name}
           </Button>
         ))}

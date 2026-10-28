@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createVbbHafas } from "vbb-hafas";
-import { findPlaces, routeProblems, type StoredRoute, type Weekday } from "@/lib/route";
+import { findPlaces, routeProblems, storedRouteName, type StoredRoute, type Weekday } from "@/lib/route";
 import { createClient, currentUser } from "@/lib/supabase/server";
 
 const userAgent =
@@ -66,9 +66,27 @@ export async function saveRoute(formData: FormData) {
 
   const transfer = String(formData.get("transferMinutes") ?? "");
   const transfers = String(formData.get("maxTransfers") ?? "");
+  const id = String(formData.get("id") ?? "");
+  const { data: existing } = await supabase.from("routes").select("id, name, start_id, ziel_id");
+  const name = storedRouteName(
+    {
+      name: String(formData.get("name") ?? ""),
+      startId: draft.startId,
+      zielId: draft.zielId,
+      startName: String(formData.get("startName") ?? ""),
+      zielName: String(formData.get("zielName") ?? ""),
+    },
+    (existing ?? []).map((route) => ({
+      id: route.id,
+      name: route.name,
+      startId: route.start_id,
+      zielId: route.ziel_id,
+    })),
+    id || undefined,
+  );
   const row = {
     user_id: user.id,
-    name: String(formData.get("name") ?? "").trim() || null,
+    name,
     start_id: draft.startId,
     start_name: String(formData.get("startName") ?? ""),
     ziel_id: draft.zielId,
@@ -81,7 +99,6 @@ export async function saveRoute(formData: FormData) {
     line_name: String(formData.get("lineName") ?? "") || null,
   };
 
-  const id = String(formData.get("id") ?? "");
   const result = id
     ? await supabase.from("routes").update(row).eq("id", id)
     : await supabase.from("routes").insert(row);

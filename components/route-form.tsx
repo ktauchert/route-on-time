@@ -85,7 +85,11 @@ export function RouteForm({
 
       <label className="flex flex-col gap-1 text-sm">
         {de ? "Name" : "Name"}
-        <Input name="name" defaultValue={route?.name ?? ""} />
+        <Input
+          name="name"
+          defaultValue={route?.name ?? ""}
+          placeholder={de ? "Start → Ziel, wenn leer" : "Start → destination if empty"}
+        />
       </label>
 
       <PlaceField

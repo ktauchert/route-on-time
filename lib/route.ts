@@ -48,6 +48,45 @@ export function routeLabel(route: {
   return name ? name : `${route.startName} → ${route.zielName}`;
 }
 
+export function storedRouteName(
+  input: {
+    name?: string | null;
+    startId: string;
+    zielId: string;
+    startName: string;
+    zielName: string;
+  },
+  existing: Array<{
+    id: string;
+    name: string | null;
+    startId: string;
+    zielId: string;
+  }>,
+  currentId?: string,
+) {
+  const given = input.name?.trim();
+  if (given) return given;
+
+  const base = `${input.startName} → ${input.zielName}`;
+  const taken = new Set(
+    existing
+      .filter(
+        (route) =>
+          route.id !== currentId &&
+          route.startId === input.startId &&
+          route.zielId === input.zielId,
+      )
+      .map((route) => route.name?.trim())
+      .filter((name): name is string => Boolean(name)),
+  );
+
+  if (!taken.has(base)) return base;
+
+  let suffix = 2;
+  while (taken.has(`${base} ${suffix}`)) suffix += 1;
+  return `${base} ${suffix}`;
+}
+
 export function appliesOn(days: readonly Weekday[], date: Date) {
   const short = new Intl.DateTimeFormat("en-US", {
     weekday: "short",

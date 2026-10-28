@@ -5,6 +5,7 @@ import {
   findPlaces,
   routeLabel,
   routeProblems,
+  storedRouteName,
 } from "./route";
 
 const monday = new Date("2026-10-26T12:00:00+01:00");
@@ -56,6 +57,34 @@ describe("routeLabel", () => {
     expect(routeLabel({ name: "  ", startName: "Alexanderplatz", zielName: "Zoo" })).toBe(
       "Alexanderplatz → Zoo",
     );
+  });
+});
+
+describe("storedRouteName", () => {
+  const stops = { startId: "a", zielId: "b", startName: "Alex", zielName: "Zoo" };
+
+  it("keeps a name the person typed", () => {
+    expect(storedRouteName({ ...stops, name: "zur Arbeit" }, [])).toBe("zur Arbeit");
+  });
+
+  it("stores start and destination when the name is empty", () => {
+    expect(storedRouteName({ ...stops, name: "  " }, [])).toBe("Alex → Zoo");
+  });
+
+  it("adds a suffix when that start and destination already has the plain name", () => {
+    expect(
+      storedRouteName({ ...stops, name: "" }, [
+        { id: "1", name: "Alex → Zoo", startId: "a", zielId: "b" },
+      ]),
+    ).toBe("Alex → Zoo 2");
+  });
+
+  it("does not treat the route being edited as a duplicate of itself", () => {
+    expect(
+      storedRouteName({ ...stops, name: "" }, [
+        { id: "1", name: "Alex → Zoo", startId: "a", zielId: "b" },
+      ], "1"),
+    ).toBe("Alex → Zoo");
   });
 });
 

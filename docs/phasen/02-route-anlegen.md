@@ -14,7 +14,7 @@ Eine Route speichert:
 - die Wochentage, an denen sie gilt. Montag bis Freitag sind vorausgewählt, mindestens ein Tag bleibt gesetzt. Ein Feiertag gilt als sein Wochentag
 - die gesetzten Teile der Vorgabe, jeder für sich optional: Ankunftsuhrzeit in Europe/Berlin, Mindestminuten für einen Umstieg, Höchstzahl der Umstiege, eine Linie aus der Auskunft
 
-Mindestens die Ankunftsuhrzeit oder, ab Phase 3, eine heute gewählte Verbindung muss gesetzt sein. Sonst hat die Uhr später keinen Zeitpunkt. In dieser Phase gibt es die heutige Verbindung noch nicht, deshalb verlangt das Formular die Ankunftsuhrzeit. Linie, Umstiegsminuten und Höchstzahl bleiben leer, wenn die Route sie nicht verlangt.
+Mindestens die Ankunftsuhrzeit oder, ab Phase 3, eine heute gewählte Verbindung muss gesetzt sein. Sonst hat die Uhr später keinen Zeitpunkt. In dieser Phase gibt es die heutige Verbindung noch nicht, deshalb verlangt das Formular die Ankunftsuhrzeit. Der Name ist freiwillig. Ist er leer, wird beim Speichern „Start → Ziel“ eingetragen. Gibt es diese Strecke schon, kommt ein Zusatz dazu, zuerst 2. Linie, Umstiegsminuten und Höchstzahl bleiben leer, wenn die Route sie nicht verlangt.
 
 Die Kennung kommt aus der Haltestellensuche der Auskunft. Ein freier Text ohne Kennung lässt sich später nicht prüfen.
 

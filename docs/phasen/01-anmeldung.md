@@ -10,7 +10,7 @@
 2. Seiten zur Anmeldung und zur Registrierung, auf Deutsch und Englisch. Die Registrierung verlangt E-Mail, Passwort und eine Wiederholung.
 3. Eine geschützte Seite, die nur zeigt, dass eine Sitzung besteht, plus Abmelden und den Sprachschalter. Ohne Sitzung führt der Weg zur Anmeldung.
 4. Abmelden beendet die Sitzung und führt zur Anmeldung zurück.
-5. Eine fehlgeschlagene Anmeldung sagt nur, dass E-Mail oder Passwort nicht stimmt, auf beiden Sprachen. Sie verrät nicht, ob die Adresse existiert.
+5. Eine fehlgeschlagene Anmeldung sagt nur, dass E-Mail oder Passwort nicht stimmt, auf beiden Sprachen. Sie verrät nicht, ob die Adresse existiert. Nach der Registrierung weist die Anmeldung auf die Bestätigungsmail hin. Der Link daraus trägt `code` und wird zur Sitzung.
 6. In Supabase die E-Mail-Anmeldung einschalten und die Mail-Bestätigung aus lassen. Ein vergessenes Passwort wird im Dashboard zurückgesetzt, nicht in der App.
 
 ## Fertig, wenn

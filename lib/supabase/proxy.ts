@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { authRedirect } from "@/lib/auth";
+import { authRedirect, confirmedSessionPath } from "@/lib/auth";
 import { supabasePublicEnv } from "@/lib/supabase/env";
 
 export async function updateSession(request: NextRequest) {
@@ -26,6 +26,16 @@ export async function updateSession(request: NextRequest) {
       },
     });
 
+    const code = request.nextUrl.searchParams.get("code");
+    if (code) {
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      const url = request.nextUrl.clone();
+      const target = new URL(confirmedSessionPath(!error), request.url);
+      url.pathname = target.pathname;
+      url.search = target.search;
+      return redirectWithSession(url, response);
+    }
+
     const { data } = await supabase.auth.getUser();
     signedIn = Boolean(data.user);
   }
@@ -38,5 +48,13 @@ export async function updateSession(request: NextRequest) {
 
   const url = request.nextUrl.clone();
   url.pathname = destination;
-  return NextResponse.redirect(url);
+  return redirectWithSession(url, response);
+}
+
+function redirectWithSession(url: URL, session: NextResponse) {
+  const redirect = NextResponse.redirect(url);
+  session.cookies.getAll().forEach((cookie) => {
+    redirect.cookies.set(cookie);
+  });
+  return redirect;
 }

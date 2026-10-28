@@ -48,3 +48,13 @@ export function authRedirect(pathname: string, signedIn: boolean) {
 
   return null;
 }
+
+export function accountCreatedMessage(language: Language) {
+  return language === "en"
+    ? "Check your email and confirm the account. Then you can sign in."
+    : "Schau in deine E-Mail und bestätige das Konto. Danach kannst du dich anmelden.";
+}
+
+export function confirmedSessionPath(exchanged: boolean) {
+  return exchanged ? "/" : "/anmelden?fehler=bestaetigung";
+}

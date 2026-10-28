@@ -26,6 +26,7 @@ const copy = {
     cancelledLeg: "Fällt aus",
     alternative: "Alternative",
     noAlternative: "Es gibt keine Alternative.",
+    restFrom: "Restweg ab",
   },
   en: {
     status: { fits: "Fits", "doesnt-fit": "Doesn't fit", unclear: "Unclear" },
@@ -50,6 +51,7 @@ const copy = {
     cancelledLeg: "Cancelled",
     alternative: "Alternative",
     noAlternative: "There is no alternative.",
+    restFrom: "Rest of the trip from",
   },
 } as const;
 

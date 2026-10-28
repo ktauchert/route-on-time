@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import type { CheckResult, LegView, Suggestion } from "@/lib/check";
 import {
   checkCopy,
+  checkedAtLabel,
   clockLabel,
   delayLabel,
   serviceDayLabel,
@@ -104,6 +105,7 @@ export function RouteCheck({
               {text.restFrom} {check.searchFromName}
             </p>
           ) : null}
+          <p>{checkedAtLabel(language, check.checkedAt)}</p>
           <p role="status">
             <span>{text.status[check.status]}</span>
             {check.reason ? <span> {text.reason[check.reason]}</span> : null}

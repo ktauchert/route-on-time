@@ -35,7 +35,7 @@ export function registerFailureReason(error: { message: string; code?: string })
   return "failed";
 }
 
-const publicPaths = new Set(["/sign-in", "/register"]);
+const publicPaths = new Set(["/sign-in", "/register", "/api/clock"]);
 
 export function authRedirect(pathname: string, signedIn: boolean) {
   if (!signedIn && !publicPaths.has(pathname)) {

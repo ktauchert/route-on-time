@@ -1,59 +1,20 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createVbbHafas } from "vbb-hafas";
 import {
   checkRow,
   runCheck,
   todayFromCheck,
-  type Auskunft,
   type CheckResult,
   type CheckStatus,
   type Suggestion,
 } from "@/lib/check";
+import { hafasClient, liveAuskunft } from "@/lib/auskunft";
 import { findPlaces, routeProblems, storedRouteName, type StoredRoute, type Weekday } from "@/lib/route";
 import { createClient, currentUser } from "@/lib/supabase/server";
 
-const userAgent =
-  process.env.HAFAS_USER_AGENT ??
-  "route-on-time (https://github.com/ktauchert/route-on-time)";
-
 function hafas() {
-  return createVbbHafas(userAgent);
-}
-
-function liveAuskunft(): Auskunft {
-  const client = hafas();
-  return {
-    async journeys(from, to, arrival) {
-      const result = await client.journeys(from, to, { arrival, results: 5, language: "de", stopovers: true });
-      return {
-        journeys: result.journeys ?? [],
-        realtimeDataUpdatedAt: result.realtimeDataUpdatedAt ?? null,
-        earlierRef: result.earlierRef ?? null,
-      };
-    },
-    async earlier(from, to, earlierRef) {
-      const result = await client.journeys(from, to, {
-        earlierThan: earlierRef,
-        results: 5,
-        language: "de",
-        stopovers: true,
-      });
-      return {
-        journeys: result.journeys ?? [],
-        realtimeDataUpdatedAt: result.realtimeDataUpdatedAt ?? null,
-        earlierRef: result.earlierRef ?? null,
-      };
-    },
-    async refreshJourney(refreshToken) {
-      const result = await client.refreshJourney(refreshToken, { language: "de", stopovers: true });
-      return {
-        journey: result.journey ?? null,
-        realtimeDataUpdatedAt: result.realtimeDataUpdatedAt ?? null,
-      };
-    },
-  };
+  return hafasClient();
 }
 
 export async function searchStops(query: string) {

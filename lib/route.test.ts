@@ -16,7 +16,7 @@ describe("routeProblems", () => {
     expect(
       routeProblems({
         startId: "900000003201",
-        zielId: "900000003201",
+        destinationId: "900000003201",
         arrival: "09:00",
         weekdays: ["mon"],
       }),
@@ -27,7 +27,7 @@ describe("routeProblems", () => {
     expect(
       routeProblems({
         startId: "a",
-        zielId: "b",
+        destinationId: "b",
         arrival: "",
         weekdays: [],
       }),
@@ -38,7 +38,7 @@ describe("routeProblems", () => {
     expect(
       routeProblems({
         startId: "a",
-        zielId: "b",
+        destinationId: "b",
         arrival: "09:00",
         weekdays: ["mon"],
       }),
@@ -48,20 +48,20 @@ describe("routeProblems", () => {
 
 describe("routeLabel", () => {
   it("uses the name when one is set", () => {
-    expect(routeLabel({ name: "zur Arbeit", startName: "A", zielName: "B" })).toBe(
+    expect(routeLabel({ name: "zur Arbeit", startName: "A", destinationName: "B" })).toBe(
       "zur Arbeit",
     );
   });
 
   it("uses start and destination when the name is empty", () => {
-    expect(routeLabel({ name: "  ", startName: "Alexanderplatz", zielName: "Zoo" })).toBe(
+    expect(routeLabel({ name: "  ", startName: "Alexanderplatz", destinationName: "Zoo" })).toBe(
       "Alexanderplatz → Zoo",
     );
   });
 });
 
 describe("storedRouteName", () => {
-  const stops = { startId: "a", zielId: "b", startName: "Alex", zielName: "Zoo" };
+  const stops = { startId: "a", destinationId: "b", startName: "Alex", destinationName: "Zoo" };
 
   it("keeps a name the person typed", () => {
     expect(storedRouteName({ ...stops, name: "zur Arbeit" }, [])).toBe("zur Arbeit");
@@ -74,7 +74,7 @@ describe("storedRouteName", () => {
   it("adds a suffix when that start and destination already has the plain name", () => {
     expect(
       storedRouteName({ ...stops, name: "" }, [
-        { id: "1", name: "Alex → Zoo", startId: "a", zielId: "b" },
+        { id: "1", name: "Alex → Zoo", startId: "a", destinationId: "b" },
       ]),
     ).toBe("Alex → Zoo 2");
   });
@@ -82,7 +82,7 @@ describe("storedRouteName", () => {
   it("does not treat the route being edited as a duplicate of itself", () => {
     expect(
       storedRouteName({ ...stops, name: "" }, [
-        { id: "1", name: "Alex → Zoo", startId: "a", zielId: "b" },
+        { id: "1", name: "Alex → Zoo", startId: "a", destinationId: "b" },
       ], "1"),
     ).toBe("Alex → Zoo");
   });

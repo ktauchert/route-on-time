@@ -1,44 +1,45 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
-import { RouteIndex } from "@/components/route-index";
+import { RouteForm } from "@/components/route-form";
 import { SignedIn } from "@/components/signed-in";
 import { StartScreen } from "@/components/start-screen";
-import { listRoutes } from "@/app/routen/actions";
 import { readAppearance } from "@/lib/appearance";
-import { routesForToday } from "@/lib/route";
 import { currentUser } from "@/lib/supabase/server";
 
-function IndexFallback() {
+function FormFallback() {
   return <StartScreen language="de" theme="paper" board />;
 }
 
-async function Index() {
+async function NewRoute({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   await connection();
-  if (!(await currentUser())) redirect("/anmelden");
+  if (!(await currentUser())) redirect("/sign-in");
 
+  const params = await searchParams;
   const { language, theme } = await readAppearance();
-  const { routes, missingTable } = await listRoutes();
 
   return (
     <StartScreen language={language} theme={theme} board>
       <SignedIn language={language} />
-      <RouteIndex
-        language={language}
-        routes={routes}
-        today={routesForToday(routes)}
-        missingTable={missingTable}
-      />
+      <RouteForm language={language} route={null} failed={params.error === "1"} />
     </StartScreen>
   );
 }
 
 export const instant = false;
 
-export default function RoutesPage() {
+export default function NewRoutePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   return (
-    <Suspense fallback={<IndexFallback />}>
-      <Index />
+    <Suspense fallback={<FormFallback />}>
+      <NewRoute searchParams={searchParams} />
     </Suspense>
   );
 }

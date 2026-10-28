@@ -7,8 +7,8 @@ create table if not exists public.routes (
   name text,
   start_id text not null,
   start_name text not null,
-  ziel_id text not null,
-  ziel_name text not null,
+  destination_id text not null,
+  destination_name text not null,
   arrival time not null,
   weekdays text[] not null,
   transfer_minutes integer,
@@ -16,7 +16,7 @@ create table if not exists public.routes (
   line_id text,
   line_name text,
   created_at timestamptz not null default now(),
-  constraint routes_different_stops check (start_id <> ziel_id),
+  constraint routes_different_stops check (start_id <> destination_id),
   constraint routes_has_a_weekday check (cardinality(weekdays) > 0)
 );
 

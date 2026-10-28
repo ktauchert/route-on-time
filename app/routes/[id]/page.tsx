@@ -5,7 +5,7 @@ import { DeleteRoute } from "@/components/delete-route";
 import { RouteForm } from "@/components/route-form";
 import { SignedIn } from "@/components/signed-in";
 import { StartScreen } from "@/components/start-screen";
-import { listRoutes } from "@/app/routen/actions";
+import { listRoutes } from "@/app/routes/actions";
 import { readAppearance } from "@/lib/appearance";
 import { currentUser } from "@/lib/supabase/server";
 
@@ -18,22 +18,22 @@ async function EditRoute({
   searchParams,
 }: {
   id: string;
-  searchParams: Promise<{ fehler?: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   await connection();
-  if (!(await currentUser())) redirect("/anmelden");
+  if (!(await currentUser())) redirect("/sign-in");
 
   const params = await searchParams;
   const { language, theme } = await readAppearance();
   const { routes } = await listRoutes();
   const route = routes.find((item) => item.id === id);
 
-  if (!route) redirect("/routen");
+  if (!route) redirect("/routes");
 
   return (
     <StartScreen language={language} theme={theme} board>
       <SignedIn language={language} />
-      <RouteForm language={language} route={route} failed={params.fehler === "1"} />
+      <RouteForm language={language} route={route} failed={params.error === "1"} />
       <DeleteRoute id={route.id} language={language} />
     </StartScreen>
   );
@@ -46,7 +46,7 @@ export default function EditRoutePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ fehler?: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   return (
     <Suspense fallback={<FormFallback />}>
@@ -60,7 +60,7 @@ async function EditGate({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ fehler?: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const { id } = await params;
   return <EditRoute id={id} searchParams={searchParams} />;

@@ -9,8 +9,8 @@ function HomeFallback() {
 
 async function HomeSession() {
   await connection();
-  if (!(await currentUser())) redirect("/anmelden");
-  redirect("/routen");
+  if (!(await currentUser())) redirect("/sign-in");
+  redirect("/routes");
   return null;
 }
 

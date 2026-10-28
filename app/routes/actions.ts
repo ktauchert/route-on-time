@@ -48,18 +48,18 @@ function weekdaysFrom(formData: FormData) {
 
 export async function saveRoute(formData: FormData) {
   const user = await currentUser();
-  if (!user) redirect("/anmelden");
+  if (!user) redirect("/sign-in");
 
   const draft = {
     startId: String(formData.get("startId") ?? ""),
-    zielId: String(formData.get("zielId") ?? ""),
+    destinationId: String(formData.get("destinationId") ?? ""),
     arrival: String(formData.get("arrival") ?? ""),
     weekdays: weekdaysFrom(formData),
   };
   const id = String(formData.get("id") ?? "");
-  const back = id ? `/routen/${id}?fehler=1` : "/routen/neu?fehler=1";
+  const back = id ? `/routes/${id}?error=1` : "/routes/new?error=1";
 
-  if (routeProblems(draft).length > 0 || !draft.startId || !draft.zielId) {
+  if (routeProblems(draft).length > 0 || !draft.startId || !draft.destinationId) {
     redirect(back);
   }
 
@@ -68,20 +68,20 @@ export async function saveRoute(formData: FormData) {
 
   const transfer = String(formData.get("transferMinutes") ?? "");
   const transfers = String(formData.get("maxTransfers") ?? "");
-  const { data: existing } = await supabase.from("routes").select("id, name, start_id, ziel_id");
+  const { data: existing } = await supabase.from("routes").select("id, name, start_id, destination_id");
   const name = storedRouteName(
     {
       name: String(formData.get("name") ?? ""),
       startId: draft.startId,
-      zielId: draft.zielId,
+      destinationId: draft.destinationId,
       startName: String(formData.get("startName") ?? ""),
-      zielName: String(formData.get("zielName") ?? ""),
+      destinationName: String(formData.get("destinationName") ?? ""),
     },
     (existing ?? []).map((route) => ({
       id: route.id,
       name: route.name,
       startId: route.start_id,
-      zielId: route.ziel_id,
+      destinationId: route.destination_id,
     })),
     id || undefined,
   );
@@ -90,8 +90,8 @@ export async function saveRoute(formData: FormData) {
     name,
     start_id: draft.startId,
     start_name: String(formData.get("startName") ?? ""),
-    ziel_id: draft.zielId,
-    ziel_name: String(formData.get("zielName") ?? ""),
+    destination_id: draft.destinationId,
+    destination_name: String(formData.get("destinationName") ?? ""),
     arrival: draft.arrival,
     weekdays: draft.weekdays,
     transfer_minutes: transfer ? Number(transfer) : null,
@@ -105,18 +105,18 @@ export async function saveRoute(formData: FormData) {
     : await supabase.from("routes").insert(row).select("id").single();
 
   if (result.error || !result.data) redirect(back);
-  redirect(`/routen/${result.data.id}`);
+  redirect(`/routes/${result.data.id}`);
 }
 
 export async function deleteRoute(formData: FormData) {
   const user = await currentUser();
-  if (!user) redirect("/anmelden");
+  if (!user) redirect("/sign-in");
 
   const supabase = await createClient();
-  if (!supabase) redirect("/routen");
+  if (!supabase) redirect("/routes");
 
   await supabase.from("routes").delete().eq("id", String(formData.get("id") ?? ""));
-  redirect("/routen");
+  redirect("/routes");
 }
 
 export async function listRoutes(): Promise<{ routes: StoredRoute[]; missingTable: boolean }> {
@@ -126,7 +126,7 @@ export async function listRoutes(): Promise<{ routes: StoredRoute[]; missingTabl
   const { data, error } = await supabase
     .from("routes")
     .select(
-      "id, name, start_id, start_name, ziel_id, ziel_name, arrival, weekdays, transfer_minutes, max_transfers, line_id, line_name",
+      "id, name, start_id, start_name, destination_id, destination_name, arrival, weekdays, transfer_minutes, max_transfers, line_id, line_name",
     )
     .order("created_at", { ascending: false });
 
@@ -139,8 +139,8 @@ export async function listRoutes(): Promise<{ routes: StoredRoute[]; missingTabl
       name: row.name,
       startId: row.start_id,
       startName: row.start_name,
-      zielId: row.ziel_id,
-      zielName: row.ziel_name,
+      destinationId: row.destination_id,
+      destinationName: row.destination_name,
       arrival: String(row.arrival).slice(0, 5),
       weekdays: row.weekdays,
       transferMinutes: row.transfer_minutes,

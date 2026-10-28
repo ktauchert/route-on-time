@@ -30,17 +30,17 @@ describe("QuickStart", () => {
     render(
       <QuickStart
         language="de"
-        routes={[{ id: "1", name: null, startName: "Alex", zielName: "Zoo", weekdays: ["mon"] }]}
+        routes={[{ id: "1", name: null, startName: "Alex", destinationName: "Zoo", weekdays: ["mon"] }]}
       />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Schnellstart" }));
 
     expect(screen.getByRole("link", { name: "Neue Route" }).getAttribute("href")).toBe(
-      "/routen/neu",
+      "/routes/new",
     );
     expect(screen.getByRole("link", { name: "Alex → Zoo" }).getAttribute("href")).toBe(
-      "/routen/1",
+      "/routes/1",
     );
     expect(screen.getByRole("button", { name: "Schnellstart" }).parentElement?.className).toContain(
       "md:hidden",
@@ -53,8 +53,8 @@ const route: StoredRoute = {
   name: "zur Arbeit",
   startId: "a",
   startName: "Alex",
-  zielId: "b",
-  zielName: "Zoo",
+  destinationId: "b",
+  destinationName: "Zoo",
   arrival: "09:00",
   weekdays: ["mon"],
   transferMinutes: null,
@@ -71,6 +71,6 @@ describe("RouteForm", () => {
   it("cancels an edit back to the route index", () => {
     render(<RouteForm language="de" route={route} failed={false} />);
 
-    expect(screen.getByRole("link", { name: "Abbrechen" }).getAttribute("href")).toBe("/routen");
+    expect(screen.getByRole("link", { name: "Abbrechen" }).getAttribute("href")).toBe("/routes");
   });
 });

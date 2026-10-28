@@ -16,7 +16,7 @@ const weekdayByShort: Record<string, Weekday> = {
 
 export type RouteDraft = {
   startId: string;
-  zielId: string;
+  destinationId: string;
   arrival: string;
   weekdays: Weekday[];
 };
@@ -24,7 +24,7 @@ export type RouteDraft = {
 export function routeProblems(draft: RouteDraft) {
   const problems: Array<"same-stop" | "arrival" | "weekdays"> = [];
 
-  if (draft.startId && draft.startId === draft.zielId) {
+  if (draft.startId && draft.startId === draft.destinationId) {
     problems.push("same-stop");
   }
 
@@ -42,39 +42,39 @@ export function routeProblems(draft: RouteDraft) {
 export function routeLabel(route: {
   name?: string | null;
   startName: string;
-  zielName: string;
+  destinationName: string;
 }) {
   const name = route.name?.trim();
-  return name ? name : `${route.startName} → ${route.zielName}`;
+  return name ? name : `${route.startName} → ${route.destinationName}`;
 }
 
 export function storedRouteName(
   input: {
     name?: string | null;
     startId: string;
-    zielId: string;
+    destinationId: string;
     startName: string;
-    zielName: string;
+    destinationName: string;
   },
   existing: Array<{
     id: string;
     name: string | null;
     startId: string;
-    zielId: string;
+    destinationId: string;
   }>,
   currentId?: string,
 ) {
   const given = input.name?.trim();
   if (given) return given;
 
-  const base = `${input.startName} → ${input.zielName}`;
+  const base = `${input.startName} → ${input.destinationName}`;
   const taken = new Set(
     existing
       .filter(
         (route) =>
           route.id !== currentId &&
           route.startId === input.startId &&
-          route.zielId === input.zielId,
+          route.destinationId === input.destinationId,
       )
       .map((route) => route.name?.trim())
       .filter((name): name is string => Boolean(name)),
@@ -115,8 +115,8 @@ export type StoredRoute = {
   name: string | null;
   startId: string;
   startName: string;
-  zielId: string;
-  zielName: string;
+  destinationId: string;
+  destinationName: string;
   arrival: string;
   weekdays: Weekday[];
   transferMinutes: number | null;

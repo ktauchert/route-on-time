@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { saveRoute, searchLines } from "@/app/routen/actions";
+import { saveRoute, searchLines } from "@/app/routes/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { defaultWeekdays, weekdays, type Weekday } from "@/lib/route";
@@ -26,12 +26,12 @@ export function RouteForm({
   route: StoredRoute | null;
   failed: boolean;
 }) {
-  const de = language === "de";
+  const isGerman = language === "de";
   const [start, setStart] = useState<Place | null>(
     route ? { id: route.startId, name: route.startName } : null,
   );
-  const [ziel, setZiel] = useState<Place | null>(
-    route ? { id: route.zielId, name: route.zielName } : null,
+  const [destination, setDestination] = useState<Place | null>(
+    route ? { id: route.destinationId, name: route.destinationName } : null,
   );
   const [lines, setLines] = useState<Place[]>([]);
   const [line, setLine] = useState<Place | null>(
@@ -54,15 +54,15 @@ export function RouteForm({
     });
   }
 
-  const sameStop = Boolean(start && ziel && start.id === ziel.id);
+  const sameStop = Boolean(start && destination && start.id === destination.id);
 
   return (
     <form action={saveRoute} className="flex flex-col gap-4">
       {route ? <input type="hidden" name="id" value={route.id} /> : null}
       <input type="hidden" name="startId" value={start?.id ?? ""} />
       <input type="hidden" name="startName" value={start?.name ?? ""} />
-      <input type="hidden" name="zielId" value={ziel?.id ?? ""} />
-      <input type="hidden" name="zielName" value={ziel?.name ?? ""} />
+      <input type="hidden" name="destinationId" value={destination?.id ?? ""} />
+      <input type="hidden" name="destinationName" value={destination?.name ?? ""} />
       <input type="hidden" name="lineId" value={line?.id ?? ""} />
       <input type="hidden" name="lineName" value={line?.name ?? ""} />
       {days.map((day) => (
@@ -71,30 +71,30 @@ export function RouteForm({
 
       {failed ? (
         <p role="alert">
-          {de
+          {isGerman
             ? "Start und Ziel müssen zwei verschiedene Haltestellen sein, mit Ankunft und mindestens einem Wochentag."
             : "Start and destination must be two different stops, with an arrival and at least one weekday."}
         </p>
       ) : null}
       {sameStop ? (
         <p role="alert">
-          {de
+          {isGerman
             ? "Start und Ziel müssen verschieden sein."
             : "Start and destination must be different."}
         </p>
       ) : null}
 
       <label className="flex flex-col gap-1 text-sm">
-        {de ? "Name" : "Name"}
+        {isGerman ? "Name" : "Name"}
         <Input
           name="name"
           defaultValue={route?.name ?? ""}
-          placeholder={de ? "Start → Ziel, wenn leer" : "Start → destination if empty"}
+          placeholder={isGerman ? "Start → Ziel, wenn leer" : "Start → destination if empty"}
         />
       </label>
 
       <PlaceField
-        label={de ? "Start" : "Start"}
+        label={isGerman ? "Start" : "Start"}
         selected={start}
         onSelect={(place) => {
           setStart(place);
@@ -103,17 +103,17 @@ export function RouteForm({
         }}
       />
       <PlaceField
-        label={de ? "Ziel" : "Destination"}
-        selected={ziel}
-        onSelect={setZiel}
+        label={isGerman ? "Ziel" : "Destination"}
+        selected={destination}
+        onSelect={setDestination}
       />
 
       <label className="flex flex-col gap-1 text-sm">
-        {de ? "Ankunft" : "Arrival"}
+        {isGerman ? "Ankunft" : "Arrival"}
         <Input name="arrival" type="time" required defaultValue={route?.arrival ?? "09:00"} />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        {de ? "Minuten zum Umsteigen" : "Minutes to transfer"}
+        {isGerman ? "Minuten zum Umsteigen" : "Minutes to transfer"}
         <Input
           name="transferMinutes"
           type="number"
@@ -122,14 +122,14 @@ export function RouteForm({
         />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        {de ? "Höchstens Umstiege" : "Maximum transfers"}
+        {isGerman ? "Höchstens Umstiege" : "Maximum transfers"}
         <Input name="maxTransfers" type="number" min={0} defaultValue={route?.maxTransfers ?? ""} />
       </label>
 
       <div className="flex flex-col gap-2 text-sm">
-        <span>{de ? "Linie" : "Line"}</span>
+        <span>{isGerman ? "Linie" : "Line"}</span>
         <Button type="button" variant="outline" onClick={loadLines} disabled={!start}>
-          {de ? "Linien am Start" : "Lines at the start"}
+          {isGerman ? "Linien am Start" : "Lines at the start"}
         </Button>
         {line ? <p>{line.name}</p> : null}
         <div className="flex flex-wrap gap-2">
@@ -142,7 +142,7 @@ export function RouteForm({
       </div>
 
       <fieldset className="flex flex-wrap gap-2">
-        <legend className="text-sm">{de ? "Wochentage" : "Weekdays"}</legend>
+        <legend className="text-sm">{isGerman ? "Wochentage" : "Weekdays"}</legend>
         {weekdays.map((day) => (
           <Button
             key={day}
@@ -158,11 +158,11 @@ export function RouteForm({
 
       <div className="flex gap-2">
         <Button type="submit" disabled={sameStop}>
-          {de ? "Speichern" : "Save"}
+          {isGerman ? "Speichern" : "Save"}
         </Button>
         {route ? (
           <Button variant="outline" asChild>
-            <Link href="/routen">{de ? "Abbrechen" : "Cancel"}</Link>
+            <Link href="/routes">{isGerman ? "Abbrechen" : "Cancel"}</Link>
           </Button>
         ) : null}
       </div>
@@ -183,7 +183,7 @@ function PlaceField({
   const [results, setResults] = useState<StopMatch[]>([]);
   const search = useRef(
     createStopSearch(async (value, signal) => {
-      const response = await fetch(`/api/halte?q=${encodeURIComponent(value)}`, { signal });
+      const response = await fetch(`/api/stops?q=${encodeURIComponent(value)}`, { signal });
       if (!response.ok) return [];
       return (await response.json()) as StopMatch[];
     }),

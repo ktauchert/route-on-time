@@ -16,7 +16,7 @@ describe("RegisterForm", () => {
     expect(screen.getByLabelText("Passwort wiederholen")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Registrieren" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Anmelden" }).getAttribute("href")).toBe(
-      "/anmelden",
+      "/sign-in",
     );
   });
 

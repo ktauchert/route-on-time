@@ -9,13 +9,13 @@ export async function signUp(formData: FormData) {
   const confirm = String(formData.get("confirm") ?? "");
 
   if (password !== confirm) {
-    redirect("/registrieren?fehler=abweichung");
+    redirect("/register?error=mismatch");
   }
 
   const supabase = await createClient();
 
   if (!supabase) {
-    redirect("/registrieren?fehler=1");
+    redirect("/register?error=1");
   }
 
   const { data, error } = await supabase.auth.signUp({
@@ -25,11 +25,11 @@ export async function signUp(formData: FormData) {
 
   if (error) {
     const reason = registerFailureReason(error);
-    redirect(reason === "exists" ? "/registrieren?fehler=vorhanden" : "/registrieren?fehler=1");
+    redirect(reason === "exists" ? "/register?error=exists" : "/register?error=1");
   }
 
   if (!data.session) {
-    redirect("/anmelden?hinweis=konto");
+    redirect("/sign-in?notice=account");
   }
 
   redirect("/");

@@ -37,11 +37,11 @@ describe("registerFailureMessage", () => {
 
 describe("authRedirect", () => {
   it("sends a visitor without a session to the sign-in page", () => {
-    expect(authRedirect("/", false)).toBe("/anmelden");
+    expect(authRedirect("/", false)).toBe("/sign-in");
   });
 
   it("sends a signed-in person away from the sign-in page", () => {
-    expect(authRedirect("/anmelden", true)).toBe("/");
+    expect(authRedirect("/sign-in", true)).toBe("/");
   });
 
   it("leaves a signed-in person on the home page", () => {
@@ -49,15 +49,15 @@ describe("authRedirect", () => {
   });
 
   it("leaves a visitor on the sign-in page", () => {
-    expect(authRedirect("/anmelden", false)).toBeNull();
+    expect(authRedirect("/sign-in", false)).toBeNull();
   });
 
   it("leaves a visitor on the registration page", () => {
-    expect(authRedirect("/registrieren", false)).toBeNull();
+    expect(authRedirect("/register", false)).toBeNull();
   });
 
   it("sends a signed-in person away from registration", () => {
-    expect(authRedirect("/registrieren", true)).toBe("/");
+    expect(authRedirect("/register", true)).toBe("/");
   });
 });
 
@@ -78,6 +78,6 @@ describe("confirmedSessionPath", () => {
   });
 
   it("returns to sign-in when the mail code is rejected", () => {
-    expect(confirmedSessionPath(false)).toBe("/anmelden?fehler=bestaetigung");
+    expect(confirmedSessionPath(false)).toBe("/sign-in?error=confirmation");
   });
 });

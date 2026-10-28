@@ -11,7 +11,7 @@ export function QuickStart({
   routes,
 }: {
   language: Language;
-  routes: Array<{ id: string; name: string | null; startName: string; zielName: string; weekdays: string[] }>;
+  routes: Array<{ id: string; name: string | null; startName: string; destinationName: string; weekdays: string[] }>;
 }) {
   const [open, setOpen] = useState(false);
   const label = language === "en" ? "Quick start" : "Schnellstart";
@@ -21,9 +21,9 @@ export function QuickStart({
     <div className="fixed right-4 bottom-4 z-20 md:hidden">
       {open ? (
         <div className="mb-2 flex flex-col gap-2 rounded-lg border bg-background p-3 shadow-lg">
-          <Link href="/routen/neu">{create}</Link>
+          <Link href="/routes/new">{create}</Link>
           {routes.map((route) => (
-            <Link key={route.id} href={`/routen/${route.id}`}>
+            <Link key={route.id} href={`/routes/${route.id}`}>
               {routeLabel(route)}
             </Link>
           ))}

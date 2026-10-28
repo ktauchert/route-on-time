@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { deleteRoute } from "@/app/routen/actions";
+import { deleteRoute } from "@/app/routes/actions";
 import { Button } from "@/components/ui/button";
 import type { Language } from "@/lib/preferences";
 

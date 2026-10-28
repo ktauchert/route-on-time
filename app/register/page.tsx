@@ -16,8 +16,8 @@ function RegisterFallback() {
 }
 
 function failureFromQuery(value: string | undefined): RegisterFailure | null {
-  if (value === "abweichung") return "mismatch";
-  if (value === "vorhanden") return "exists";
+  if (value === "mismatch") return "mismatch";
+  if (value === "exists") return "exists";
   if (value === "1") return "failed";
   return null;
 }
@@ -25,7 +25,7 @@ function failureFromQuery(value: string | undefined): RegisterFailure | null {
 async function Register({
   searchParams,
 }: {
-  searchParams: Promise<{ fehler?: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   await connection();
 
@@ -38,7 +38,7 @@ async function Register({
 
   return (
     <StartScreen language={language} theme={theme} centered>
-      <RegisterForm language={language} failure={failureFromQuery(params.fehler)} />
+      <RegisterForm language={language} failure={failureFromQuery(params.error)} />
     </StartScreen>
   );
 }
@@ -48,7 +48,7 @@ export const instant = false;
 export default function RegisterPage({
   searchParams,
 }: {
-  searchParams: Promise<{ fehler?: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   return (
     <Suspense fallback={<RegisterFallback />}>

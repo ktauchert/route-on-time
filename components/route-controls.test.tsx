@@ -34,8 +34,12 @@ describe("QuickStart", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Schnellstart" }));
 
-    expect(screen.getByRole("link", { name: "Neue Route" }).getAttribute("href")).toBe("/?neu=1");
-    expect(screen.getByRole("link", { name: "Alex → Zoo" }).getAttribute("href")).toBe("/?route=1");
+    expect(screen.getByRole("link", { name: "Neue Route" }).getAttribute("href")).toBe(
+      "/routen/neu",
+    );
+    expect(screen.getByRole("link", { name: "Alex → Zoo" }).getAttribute("href")).toBe(
+      "/routen/1",
+    );
     expect(screen.getByRole("button", { name: "Schnellstart" }).parentElement?.className).toContain(
       "md:hidden",
     );

@@ -25,7 +25,7 @@ Die Kennung kommt aus der Haltestellensuche der Auskunft. Ein freier Text ohne K
 3. Formular zum Anlegen und Ändern: Name, Start, Ziel, Ankunftsuhrzeit, Umstiegsminuten, Höchstzahl der Umstiege, Linie, Wochentage. Start und Ziel suchen ab drei Buchstaben selbst, mit kurzer Verzögerung. Tippt die Person weiter, wird die laufende Anfrage abgebrochen. Die Linie kommt aus der Auskunft, nicht aus einem freien Text. Start und Ziel müssen zwei verschiedene Haltestellen sein.
 4. Liste der eigenen Routen, an jedem Tag alle, auch wenn die Route heute nicht gilt. Ohne Namen stehen Start und Ziel da. Mehrere Routen mit demselben Start und Ziel sind erlaubt. Löschen erst nach einer Rückfrage, auf Deutsch und Englisch.
 5. Leerer Zustand, wenn noch keine Route da ist.
-6. Mobil eine Spalte und der Schnellstart aus der [Oberfläche](../oberflaeche.md): Neue Route, plus jede Route, die heute gilt. Desktop: Liste links, Route rechts, ohne Schnellstart. Beides auf Deutsch und Englisch, in Hell und Dunkel.
+6. Mobil eine Spalte und der Schnellstart aus der [Oberfläche](../oberflaeche.md). Die Übersicht ist `/routen`. Neue Route ist `/routen/neu`, Bearbeiten ist `/routen/[id]`, dasselbe Formular. Löschen sitzt in der Liste und auf der Bearbeiten-Seite, jeweils nach Rückfrage. Desktop ohne Schnellstart. Beides auf Deutsch und Englisch, in Hell und Dunkel.
 
 ## Fertig, wenn
 
@@ -37,7 +37,7 @@ Die Kennung kommt aus der Haltestellensuche der Auskunft. Ein freier Text ohne K
 - Zwei Routen mit demselben Start und Ziel und verschiedenen Ankunftszeiten lassen sich beide speichern.
 - Dieselbe Liste mit einem zweiten Konto leer ist, auch wenn die Kennung der Route bekannt ist.
 - In den Netzwerkanfragen des Browsers kein Aufruf an die HAFAS-Adresse auftaucht.
-- Unter 768 px der Schnellstart Neue Route und die heute geltenden Routen öffnet, und ab 768 px Liste und Route nebeneinander stehen.
+- Unter 768 px der Schnellstart Neue Route und die heute geltenden Routen öffnet. Neue Route ist eine eigene Seite, nicht ein Parameter an der Übersicht.
 
 ## Anmerkungen
 

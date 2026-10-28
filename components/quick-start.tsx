@@ -21,9 +21,9 @@ export function QuickStart({
     <div className="fixed right-4 bottom-4 z-20 md:hidden">
       {open ? (
         <div className="mb-2 flex flex-col gap-2 rounded-lg border bg-background p-3 shadow-lg">
-          <Link href="/?neu=1">{create}</Link>
+          <Link href="/routen/neu">{create}</Link>
           {routes.map((route) => (
-            <Link key={route.id} href={`/?route=${route.id}`}>
+            <Link key={route.id} href={`/routen/${route.id}`}>
               {routeLabel(route)}
             </Link>
           ))}

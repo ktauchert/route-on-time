@@ -56,17 +56,18 @@ export async function saveRoute(formData: FormData) {
     arrival: String(formData.get("arrival") ?? ""),
     weekdays: weekdaysFrom(formData),
   };
+  const id = String(formData.get("id") ?? "");
+  const back = id ? `/routen/${id}?fehler=1` : "/routen/neu?fehler=1";
 
   if (routeProblems(draft).length > 0 || !draft.startId || !draft.zielId) {
-    redirect("/?neu=1&fehler=1");
+    redirect(back);
   }
 
   const supabase = await createClient();
-  if (!supabase) redirect("/?neu=1&fehler=tabelle");
+  if (!supabase) redirect(back);
 
   const transfer = String(formData.get("transferMinutes") ?? "");
   const transfers = String(formData.get("maxTransfers") ?? "");
-  const id = String(formData.get("id") ?? "");
   const { data: existing } = await supabase.from("routes").select("id, name, start_id, ziel_id");
   const name = storedRouteName(
     {
@@ -100,11 +101,11 @@ export async function saveRoute(formData: FormData) {
   };
 
   const result = id
-    ? await supabase.from("routes").update(row).eq("id", id)
-    : await supabase.from("routes").insert(row);
+    ? await supabase.from("routes").update(row).eq("id", id).select("id").single()
+    : await supabase.from("routes").insert(row).select("id").single();
 
-  if (result.error) redirect("/?neu=1&fehler=tabelle");
-  redirect(id ? `/?route=${id}` : "/");
+  if (result.error || !result.data) redirect(back);
+  redirect(`/routen/${result.data.id}`);
 }
 
 export async function deleteRoute(formData: FormData) {
@@ -112,10 +113,10 @@ export async function deleteRoute(formData: FormData) {
   if (!user) redirect("/anmelden");
 
   const supabase = await createClient();
-  if (!supabase) redirect("/");
+  if (!supabase) redirect("/routen");
 
   await supabase.from("routes").delete().eq("id", String(formData.get("id") ?? ""));
-  redirect("/");
+  redirect("/routen");
 }
 
 export async function listRoutes(): Promise<{ routes: StoredRoute[]; missingTable: boolean }> {

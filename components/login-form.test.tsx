@@ -18,6 +18,7 @@ describe("LoginForm", () => {
       "/registrieren",
     );
     expect(screen.queryByText("E-Mail oder Passwort stimmt nicht.")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("shows the same failure in English and still links to registration", () => {
@@ -26,6 +27,14 @@ describe("LoginForm", () => {
     expect(screen.getByText("Email or password is incorrect.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Register" }).getAttribute("href")).toBe(
       "/registrieren",
+    );
+  });
+
+  it("tells the person to confirm the email", () => {
+    render(<LoginForm language="de" failed={false} accountCreated />);
+
+    expect(screen.getByRole("status").textContent).toBe(
+      "Schau in deine E-Mail und bestätige das Konto. Danach kannst du dich anmelden.",
     );
   });
 });

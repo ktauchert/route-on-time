@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { authRedirect, registerFailureMessage, signInFailureMessage } from "./auth";
+import { accountCreatedMessage, authRedirect, registerFailureMessage, signInFailureMessage, confirmedSessionPath } from "./auth";
 
 describe("signInFailureMessage", () => {
   it("uses one German sentence and does not mention whether the email exists", () => {
@@ -58,5 +58,26 @@ describe("authRedirect", () => {
 
   it("sends a signed-in person away from registration", () => {
     expect(authRedirect("/registrieren", true)).toBe("/");
+  });
+});
+
+describe("accountCreatedMessage", () => {
+  it("tells the person to confirm the email, in both languages", () => {
+    expect(accountCreatedMessage("de")).toBe(
+      "Schau in deine E-Mail und bestätige das Konto. Danach kannst du dich anmelden.",
+    );
+    expect(accountCreatedMessage("en")).toBe(
+      "Check your email and confirm the account. Then you can sign in.",
+    );
+  });
+});
+
+describe("confirmedSessionPath", () => {
+  it("opens the home page when the mail code becomes a session", () => {
+    expect(confirmedSessionPath(true)).toBe("/");
+  });
+
+  it("returns to sign-in when the mail code is rejected", () => {
+    expect(confirmedSessionPath(false)).toBe("/anmelden?fehler=bestaetigung");
   });
 });

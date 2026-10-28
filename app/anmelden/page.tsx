@@ -17,7 +17,7 @@ function LoginFallback() {
 async function Login({
   searchParams,
 }: {
-  searchParams: Promise<{ fehler?: string }>;
+  searchParams: Promise<{ fehler?: string; hinweis?: string }>;
 }) {
   await connection();
   if (await currentUser()) {
@@ -29,7 +29,11 @@ async function Login({
 
   return (
     <StartScreen language={language} theme={theme} centered>
-      <LoginForm language={language} failed={params.fehler === "1"} />
+      <LoginForm
+        language={language}
+        failed={params.fehler === "1" || params.fehler === "bestaetigung"}
+        accountCreated={params.hinweis === "konto"}
+      />
     </StartScreen>
   );
 }
@@ -39,7 +43,7 @@ export const instant = false;
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ fehler?: string }>;
+  searchParams: Promise<{ fehler?: string; hinweis?: string }>;
 }) {
   return (
     <Suspense fallback={<LoginFallback />}>

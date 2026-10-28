@@ -18,6 +18,7 @@ export function StartScreen({
   onTheme,
   children,
   centered = false,
+  board = false,
 }: {
   language: Language;
   theme?: ThemeName;
@@ -25,6 +26,7 @@ export function StartScreen({
   onTheme?: (theme: ThemeName) => void;
   children?: ReactNode;
   centered?: boolean;
+  board?: boolean;
 }) {
   const [currentLanguage, setCurrentLanguage] = useState(language);
   const [currentTheme, setCurrentTheme] = useState(theme);
@@ -44,45 +46,61 @@ export function StartScreen({
     onTheme?.(next);
   }
 
+  const switches = (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => chooseLanguage(currentLanguage === "de" ? "en" : "de")}
+      >
+        {text.languageSwitch}
+      </Button>
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant={currentTheme === "paper" ? "default" : "outline"}
+          aria-pressed={currentTheme === "paper"}
+          onClick={() => chooseTheme("paper")}
+        >
+          Paper
+        </Button>
+        <Button
+          type="button"
+          variant={currentTheme === "stone" ? "default" : "outline"}
+          aria-pressed={currentTheme === "stone"}
+          onClick={() => chooseTheme("stone")}
+        >
+          Stone
+        </Button>
+      </div>
+    </>
+  );
+
   return (
     <main
       className={
-        centered
-          ? "mx-auto flex min-h-svh w-full max-w-md flex-col gap-8 p-6"
-          : "flex min-h-svh flex-col gap-8 p-6 md:grid md:grid-cols-2 md:items-end md:p-12"
+        board
+          ? "flex min-h-svh flex-col gap-6 p-4 md:p-8"
+          : centered
+            ? "mx-auto flex min-h-svh w-full max-w-md flex-col gap-8 p-6"
+            : "flex min-h-svh flex-col gap-8 p-6 md:grid md:grid-cols-2 md:items-end md:p-12"
       }
     >
-      <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
-        Route on Time
-      </h1>
-      <div className="flex flex-col gap-3 md:items-end">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => chooseLanguage(currentLanguage === "de" ? "en" : "de")}
-        >
-          {text.languageSwitch}
-        </Button>
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant={currentTheme === "paper" ? "default" : "outline"}
-            aria-pressed={currentTheme === "paper"}
-            onClick={() => chooseTheme("paper")}
-          >
-            Paper
-          </Button>
-          <Button
-            type="button"
-            variant={currentTheme === "stone" ? "default" : "outline"}
-            aria-pressed={currentTheme === "stone"}
-            onClick={() => chooseTheme("stone")}
-          >
-            Stone
-          </Button>
-        </div>
-        {children}
-      </div>
+      {board ? (
+        <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <h1 className="text-3xl font-semibold tracking-tight">Route on Time</h1>
+          <div className="flex flex-col gap-3 md:items-end">{switches}</div>
+        </header>
+      ) : (
+        <>
+          <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">Route on Time</h1>
+          <div className="flex flex-col gap-3 md:items-end">
+            {switches}
+            {children}
+          </div>
+        </>
+      )}
+      {board ? children : null}
     </main>
   );
 }

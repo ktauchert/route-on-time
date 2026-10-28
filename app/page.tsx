@@ -7,7 +7,7 @@ import { readAppearance } from "@/lib/appearance";
 import { currentUser } from "@/lib/supabase/server";
 
 function HomeFallback() {
-  return <StartScreen language="de" theme="paper" board wordmarkHref="/" />;
+  return <StartScreen language="de" theme="paper" wordmarkHref="/" />;
 }
 
 async function HomeSession() {
@@ -17,7 +17,7 @@ async function HomeSession() {
   const { language, theme } = await readAppearance();
 
   return (
-    <StartScreen language={language} theme={theme} board wordmarkHref="/">
+    <StartScreen language={language} theme={theme} wordmarkHref="/">
       <Landing language={language} />
     </StartScreen>
   );

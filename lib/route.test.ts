@@ -6,6 +6,7 @@ import {
   routeLabel,
   routeProblems,
   storedRouteName,
+  weekdayNames,
 } from "./route";
 
 const monday = new Date("2026-10-26T12:00:00+01:00");
@@ -118,5 +119,18 @@ describe("findPlaces", () => {
       { kind: "stop", id: "1", name: "Alex" },
       { kind: "line", id: "s2", name: "S2" },
     ]);
+  });
+});
+
+describe("weekdayNames", () => {
+  it("lists the weekdays of a route in week order", () => {
+    expect(weekdayNames("de", ["fri", "mon", "wed"])).toBe("Mo Mi Fr");
+    expect(weekdayNames("en", ["sun", "sat"])).toBe("Sat Sun");
+  });
+
+  it("shortens a full working week and every day", () => {
+    expect(weekdayNames("de", ["mon", "tue", "wed", "thu", "fri"])).toBe("Mo–Fr");
+    expect(weekdayNames("en", ["mon", "tue", "wed", "thu", "fri", "sat", "sun"])).toBe("Every day");
+    expect(weekdayNames("de", ["mon", "tue", "wed", "thu", "fri", "sat", "sun"])).toBe("Täglich");
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { glanceFor, tripMoment, upcomingLabel } from "./moment";
+import { glanceFor, nextRouteId, tripMoment, upcomingLabel } from "./moment";
 import type { Suggestion } from "./check";
 
 function trip(departure: string, arrival: string, token = "one"): Suggestion {
@@ -81,5 +81,31 @@ describe("upcomingLabel", () => {
   it("names the wait in both languages", () => {
     expect(upcomingLabel("de", 25)).toBe("Abfahrt in 25 min");
     expect(upcomingLabel("en", 25)).toBe("Departs in 25 min");
+  });
+});
+
+describe("nextRouteId", () => {
+  it("picks the route whose departure comes first", () => {
+    expect(
+      nextRouteId({
+        a: { status: "fits", upcomingMinutes: 40, progress: null },
+        b: { status: "fits", upcomingMinutes: 12, progress: null },
+        c: { status: "unclear", upcomingMinutes: null, progress: 0.5 },
+      }),
+    ).toBe("b");
+  });
+
+  it("has none when no departure lies ahead", () => {
+    expect(nextRouteId({ c: { status: "fits", upcomingMinutes: null, progress: 0.2 } })).toBeNull();
+    expect(nextRouteId({})).toBeNull();
+  });
+});
+
+describe("upcomingLabel in hours", () => {
+  it("names hours once the departure is an hour or more away", () => {
+    expect(upcomingLabel("de", 59)).toBe("Abfahrt in 59 min");
+    expect(upcomingLabel("de", 60)).toBe("Abfahrt in 1 h");
+    expect(upcomingLabel("de", 610)).toBe("Abfahrt in 10 h 10 min");
+    expect(upcomingLabel("en", 75)).toBe("Departs in 1 h 15 min");
   });
 });

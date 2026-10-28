@@ -9,7 +9,7 @@ import { defaultIntervalMinutes } from "@/lib/clock";
 import { createClient, currentUser } from "@/lib/supabase/server";
 
 function SettingsFallback() {
-  return <StartScreen language="de" theme="paper" board />;
+  return <StartScreen language="de" theme="paper" />;
 }
 
 async function Settings({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
@@ -25,8 +25,11 @@ async function Settings({ searchParams }: { searchParams: Promise<{ error?: stri
     : { data: null };
 
   return (
-    <StartScreen language={language} theme={theme} board>
-      <SignedIn language={language} />
+    <StartScreen
+      language={language}
+      theme={theme}
+      nav={<SignedIn language={language} current="settings" />}
+    >
       <SettingsForm
         language={language}
         minutes={data?.check_interval_minutes ?? defaultIntervalMinutes}

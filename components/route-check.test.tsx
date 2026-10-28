@@ -72,6 +72,8 @@ describe("RouteCheck", () => {
     expect(screen.getByText(/S\+U Alexanderplatz → S\+U Zoologischer Garten/)).toBeTruthy();
     expect(screen.getByText(/\+2 min/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Als heutige Verbindung" })).toBeTruthy();
+    expect(screen.getByText("08:02 → 08:50")).toBeTruthy();
+    expect(screen.getByText("48 min · direkt")).toBeTruthy();
   });
 
   it("uses the English status words", () => {
@@ -234,6 +236,22 @@ describe("RouteCheck", () => {
     expect(screen.getByRole("progressbar", { name: "Unterwegs" }).getAttribute("aria-valuenow")).toBe(
       "50",
     );
+  });
+
+  it("names the minutes until the connection departs when it has not started", () => {
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={fitting}
+        chosenToken={null}
+        saveFailed={false}
+        now="2026-10-26T06:50:00.000Z"
+      />,
+    );
+
+    expect(screen.getByText("Abfahrt in 12 min")).toBeTruthy();
+    expect(screen.queryByRole("progressbar")).toBeNull();
   });
 
   it("says when a check could not be saved", () => {

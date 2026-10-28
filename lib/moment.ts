@@ -1,3 +1,4 @@
+import { durationLabel } from "./check-copy";
 import type { CheckStatus, Suggestion } from "./check";
 import type { Language } from "./preferences";
 
@@ -68,9 +69,22 @@ export function glanceFor(
 }
 
 export function upcomingLabel(language: Language, minutes: number) {
-  return language === "de" ? `Abfahrt in ${minutes} min` : `Departs in ${minutes} min`;
+  const time = durationLabel(minutes);
+  return language === "de" ? `Abfahrt in ${time}` : `Departs in ${time}`;
 }
 
 export function underwayLabel(language: Language) {
   return language === "de" ? "Unterwegs" : "Underway";
+}
+
+export function nextRouteId(glances: Record<string, RouteGlance>) {
+  let next: string | null = null;
+  let soonest = Infinity;
+  for (const [id, glance] of Object.entries(glances)) {
+    if (glance.upcomingMinutes != null && glance.upcomingMinutes < soonest) {
+      soonest = glance.upcomingMinutes;
+      next = id;
+    }
+  }
+  return next;
 }

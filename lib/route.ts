@@ -1,8 +1,24 @@
+import type { Language } from "./preferences";
+
 export const defaultWeekdays = ["mon", "tue", "wed", "thu", "fri"] as const;
 
 export const weekdays = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
 export type Weekday = (typeof weekdays)[number];
+
+export const weekdayLabels = {
+  de: { mon: "Mo", tue: "Di", wed: "Mi", thu: "Do", fri: "Fr", sat: "Sa", sun: "So" },
+  en: { mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun" },
+} as const;
+
+export function weekdayNames(language: Language, days: readonly string[]) {
+  const chosen = weekdays.filter((day) => days.includes(day));
+  if (chosen.length === weekdays.length) return language === "de" ? "Täglich" : "Every day";
+  if (chosen.length === defaultWeekdays.length && defaultWeekdays.every((day) => chosen.includes(day))) {
+    return language === "de" ? "Mo–Fr" : "Mon–Fri";
+  }
+  return chosen.map((day) => weekdayLabels[language][day]).join(" ");
+}
 
 const weekdayByShort: Record<string, Weekday> = {
   Mon: "mon",

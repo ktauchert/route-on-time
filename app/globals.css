@@ -21,6 +21,8 @@
     --color-chart-2: var(--chart-2);
     --color-chart-1: var(--chart-1);
     --color-ring: var(--ring);
+  --color-signal: var(--signal);
+  --color-signal-foreground: var(--signal-foreground);
   --color-fits: var(--fits);
   --color-miss: var(--miss);
   --color-unclear: var(--unclear);
@@ -51,14 +53,14 @@
 }
 
 :root {
-    --background: oklch(0.985 0.001 106.423);
+    --background: oklch(0.975 0.004 85);
     --foreground: oklch(0.147 0.004 49.25);
-    --card: oklch(1 0 0);
+    --card: oklch(0.995 0.002 85);
     --card-foreground: oklch(0.147 0.004 49.25);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.147 0.004 49.25);
-    --primary: oklch(0.216 0.006 56.043);
-    --primary-foreground: oklch(0.985 0.001 106.423);
+    --primary: var(--signal);
+    --primary-foreground: var(--signal-foreground);
     --secondary: oklch(0.97 0.001 106.424);
     --secondary-foreground: oklch(0.216 0.006 56.043);
     --muted: oklch(0.97 0.001 106.424);
@@ -68,7 +70,9 @@
     --destructive: oklch(0.577 0.245 27.325);
     --border: oklch(0.923 0.003 48.717);
     --input: oklch(0.923 0.003 48.717);
-    --ring: oklch(0.709 0.01 56.259);
+    --ring: oklch(0.5 0.14 255);
+    --signal: oklch(0.5 0.14 255);
+    --signal-foreground: oklch(0.985 0.001 106.423);
     --fits: oklch(0.42 0.07 150);
     --miss: oklch(0.47 0.12 25);
     --unclear: oklch(0.48 0.07 75);
@@ -91,12 +95,12 @@
 .dark {
     --background: oklch(0.147 0.004 49.25);
     --foreground: oklch(0.985 0.001 106.423);
-    --card: oklch(0.216 0.006 56.043);
+    --card: oklch(0.19 0.005 56);
     --card-foreground: oklch(0.985 0.001 106.423);
     --popover: oklch(0.216 0.006 56.043);
     --popover-foreground: oklch(0.985 0.001 106.423);
-    --primary: oklch(0.923 0.003 48.717);
-    --primary-foreground: oklch(0.216 0.006 56.043);
+    --primary: var(--signal);
+    --primary-foreground: var(--signal-foreground);
     --secondary: oklch(0.268 0.007 34.298);
     --secondary-foreground: oklch(0.985 0.001 106.423);
     --muted: oklch(0.268 0.007 34.298);
@@ -106,7 +110,9 @@
     --destructive: oklch(0.704 0.191 22.216);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.553 0.013 58.071);
+    --ring: oklch(0.76 0.11 250);
+    --signal: oklch(0.76 0.11 250);
+    --signal-foreground: oklch(0.147 0.004 49.25);
     --fits: oklch(0.78 0.08 150);
     --miss: oklch(0.78 0.1 25);
     --unclear: oklch(0.82 0.08 85);
@@ -133,6 +139,6 @@
     @apply bg-background text-foreground;
     }
   html {
-    @apply font-sans;
+    @apply font-sans antialiased;
     }
 }

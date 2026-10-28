@@ -10,7 +10,7 @@ import { routesForToday } from "@/lib/route";
 import { currentUser } from "@/lib/supabase/server";
 
 function IndexFallback() {
-  return <StartScreen language="de" theme="paper" board />;
+  return <StartScreen language="de" theme="paper" />;
 }
 
 async function Index() {
@@ -22,8 +22,11 @@ async function Index() {
   const glances = await listGlances(routes);
 
   return (
-    <StartScreen language={language} theme={theme} board>
-      <SignedIn language={language} />
+    <StartScreen
+      language={language}
+      theme={theme}
+      nav={<SignedIn language={language} current="routes" />}
+    >
       <RouteIndex
         language={language}
         routes={routes}

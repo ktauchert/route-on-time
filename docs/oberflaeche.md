@@ -8,7 +8,7 @@ Einzelheiten der Phasen bleiben in den Phasendateien. Diese Seite hält, was jed
 
 **Mobil.** Eine Spalte. Die Routenliste ist eine eigene Ansicht, eine Route eine weitere. Der Sprach- und der Themenschalter liegen oben.
 
-**Desktop.** Die Übersicht zeigt die Routen als Liste. Anlegen und Bearbeiten sind eigene Seiten und nutzen dasselbe Formular. Anmeldung bleibt eine einzelne Spalte in der Mitte. Der Inhalt liegt mittig und endet bei 1280 px. Liste, Formular und Prüfung bleiben schmaler, siehe [ADR 0010](./adr/0010-lesespalte.md) und die [Reise](./reise.md).
+**Desktop.** Die Übersicht zeigt die Routen als Liste. Anlegen und Bearbeiten sind eigene Seiten und nutzen dasselbe Formular. Anmeldung bleibt eine einzelne Spalte in der Mitte. Der Inhalt liegt mittig und endet bei 1280 px. Liste und Einstellungen bleiben schmaler. Die geöffnete Route zeigt ab 1024 px Prüfung und Formular nebeneinander, siehe [ADR 0010](./adr/0010-lesespalte.md) und die [Reise](./reise.md).
 
 Eine Phase, die eine Ansicht verändert, liefert beide Layouts mit.
 
@@ -20,7 +20,9 @@ Zwei Themen, eine shadcn-Basis: `stone`. Paper und Stone sind die Namen der beid
 
 **Stone** ist der dunkle Modus. Der Grund ist das dunkle Ende derselben Skala.
 
-Beim ersten Öffnen folgt die App der Einstellung des Geräts. Ein Schalter neben dem Sprachschalter setzt Paper oder Stone fest. Die Wahl bleibt auf dem Gerät, im selben Sinne wie die Sprache, und ist kein Feld am Nutzer. Anders als die Sprache darf die Geräteeinstellung den ersten Blick bestimmen.
+Beim ersten Öffnen folgt die App der Einstellung des Geräts. Ein Schalter neben dem Sprachschalter setzt Paper oder Stone fest. Beide Schalter liegen in der Kopfzeile. Angemeldet stehen dort auch Routen, Einstellungen und Abmelden.
+
+Neben den beiden Themen gibt es eine Signalfarbe für den Hauptknopf, den Fortschritt und die Auswahl, siehe [ADR 0011](./adr/0011-signalfarbe.md). Die Wahl bleibt auf dem Gerät, im selben Sinne wie die Sprache, und ist kein Feld am Nutzer. Anders als die Sprache darf die Geräteeinstellung den ersten Blick bestimmen.
 
 ## Schnellstart
 

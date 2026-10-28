@@ -5,7 +5,8 @@ import { DeleteRoute } from "@/components/delete-route";
 import { RouteForm } from "@/components/route-form";
 import { SignedIn } from "@/components/signed-in";
 import { StartScreen } from "@/components/start-screen";
-import { listRoutes } from "@/app/routes/actions";
+import { RouteCheck } from "@/components/route-check";
+import { latestCheck, listRoutes } from "@/app/routes/actions";
 import { readAppearance } from "@/lib/appearance";
 import { currentUser } from "@/lib/supabase/server";
 
@@ -30,9 +31,22 @@ async function EditRoute({
 
   if (!route) redirect("/routes");
 
+  const check = await latestCheck(route.id);
+  const chosenToken =
+    route.todayRefreshToken && route.todayServiceDate === check?.serviceDate
+      ? route.todayRefreshToken
+      : null;
+
   return (
     <StartScreen language={language} theme={theme} board>
       <SignedIn language={language} />
+      <RouteCheck
+        language={language}
+        routeId={route.id}
+        check={check}
+        chosenToken={chosenToken}
+        saveFailed={params.error === "check"}
+      />
       <RouteForm language={language} route={route} failed={params.error === "1"} />
       <DeleteRoute id={route.id} language={language} />
     </StartScreen>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { checkRoute } from "@/app/routes/actions";
 import { Button } from "@/components/ui/button";
 import { routeLabel } from "@/lib/route";
 import type { Language } from "@/lib/preferences";
@@ -23,9 +24,12 @@ export function QuickStart({
         <div className="mb-2 flex flex-col gap-2 rounded-lg border bg-background p-3 shadow-lg">
           <Link href="/routes/new">{create}</Link>
           {routes.map((route) => (
-            <Link key={route.id} href={`/routes/${route.id}`}>
-              {routeLabel(route)}
-            </Link>
+            <form key={route.id} action={checkRoute}>
+              <input type="hidden" name="id" value={route.id} />
+              <Button type="submit" variant="ghost">
+                {routeLabel(route)}
+              </Button>
+            </form>
           ))}
         </div>
       ) : null}

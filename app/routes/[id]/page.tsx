@@ -57,6 +57,8 @@ async function EditRoute({
           saveFailed={params.error === "check"}
           now={new Date().toISOString()}
           leave={!route.arrival}
+          preferredMode={route.preferredMode}
+          avoidLines={route.avoidLines}
           leftAt={
             route.leftAt && berlinDateString(new Date(route.leftAt)) === berlinDateString(new Date())
               ? route.leftAt

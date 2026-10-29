@@ -1,5 +1,6 @@
 import { berlinInstant } from "./check";
 import type { CheckReason, CheckStatus, LegView } from "./check";
+import { modeLabel, type Mode } from "./mode";
 import type { Language } from "./preferences";
 
 const copy = {
@@ -11,18 +12,22 @@ const copy = {
       transfers: "Es sind zu viele Umstiege.",
       line: "Die Linie fehlt.",
       cancelled: "Ein Abschnitt fällt aus.",
+      avoided: "Die Verbindung nutzt eine Linie, die du meiden willst.",
       empty: "Für diese Ankunft gibt es keine Verbindung.",
       "no-answer": "Die Auskunft ist nicht erreichbar.",
       stale: "Die Echtzeit ist älter als 15 Minuten.",
     },
     check: "Jetzt prüfen",
+    avoiding: "Gemieden:",
     leave: "Ich verlasse das Büro",
     notLeft: "Noch nicht aufgebrochen.",
+    more: "Weitere Vorschläge",
     choose: "Als heutige Verbindung",
     chosen: "Heutige Verbindung",
     clear: "Wahl aufheben",
     notChecked: "Noch nicht geprüft.",
     saveFailed: "Der Stand konnte nicht gespeichert werden.",
+    legsSummary: "Abschnitte",
     walking: "Fußweg",
     transfer: "Umstieg",
     cancelledLeg: "Fällt aus",
@@ -39,18 +44,22 @@ const copy = {
       transfers: "There are too many transfers.",
       line: "The line is missing.",
       cancelled: "A leg is cancelled.",
+      avoided: "The connection uses a line you want to avoid.",
       empty: "There is no connection for this arrival.",
       "no-answer": "The timetable did not answer.",
       stale: "Realtime data is older than 15 minutes.",
     },
     check: "Check now",
+    avoiding: "Avoided:",
     leave: "I'm leaving the office",
     notLeft: "Not left yet.",
+    more: "More suggestions",
     choose: "Use as today's connection",
     chosen: "Today's connection",
     clear: "Clear choice",
     notChecked: "Not checked yet.",
     saveFailed: "The result could not be saved.",
+    legsSummary: "Legs",
     walking: "Walk",
     transfer: "Transfer",
     cancelledLeg: "Cancelled",
@@ -88,6 +97,11 @@ export function checkedAtLabel(language: Language, checkedAt: string) {
     timeZone: "Europe/Berlin",
   }).format(new Date(checkedAt));
   return language === "de" ? `Geprüft um ${time}` : `Checked at ${time}`;
+}
+
+export function noPreferredLabel(language: Language, mode: string) {
+  const name = modeLabel(language, mode as Mode);
+  return language === "de" ? `Keine passende Verbindung mit ${name}.` : `No fitting connection with ${name}.`;
 }
 
 export function leftAtLabel(language: Language, leftAt: string) {

@@ -4,7 +4,7 @@ declare module "vbb-hafas" {
   type JourneyLeg = {
     walking?: boolean;
     cancelled?: boolean;
-    line?: { id?: string; name?: string } | null;
+    line?: { id?: string; name?: string; product?: string } | null;
     origin?: { id?: string; name?: string } | null;
     destination?: { id?: string; name?: string } | null;
     stopovers?: Array<{
@@ -33,6 +33,7 @@ declare module "vbb-hafas" {
       to: string,
       options: {
         arrival?: Date;
+        departure?: Date;
         earlierThan?: string;
         results?: number;
         language?: string;
@@ -50,5 +51,15 @@ declare module "vbb-hafas" {
     ) => Promise<{ journey?: Journey | null; realtimeDataUpdatedAt?: number | null }>;
   };
 
-  export function createVbbHafas(userAgent: string): HafasClient;
+  type Profile = {
+    transformJourneysQuery?: (
+      context: unknown,
+      query: Record<string, unknown> & { jnyFltrL?: unknown[] },
+    ) => Record<string, unknown> & { jnyFltrL?: unknown[] };
+    [key: string]: unknown;
+  };
+
+  export const defaults: { profile: Profile };
+
+  export function createVbbHafas(userAgent: string, options?: { profile?: Profile }): HafasClient;
 }

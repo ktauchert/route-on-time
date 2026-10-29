@@ -4,7 +4,7 @@ Geprüft am 27. Oktober 2026 gegen die öffentlichen Angaben von VBB, `hafas-cli
 
 - [AGENTS.md](../AGENTS.md) — TDD und GitHub-CI
 - [Projektplan](./projektplan.md) — Ziel, Annahmen, was eine Phase ist
-- [Roadmap](./roadmap.md) — Phasen 0 bis 8 und was danach liegt
+- [Roadmap](./roadmap.md) — Phasen 0 bis 9 und was danach liegt
 - [Umsetzungsplan](./umsetzungsplan.md) — ein Durchgang baut eine Phase
 - [MCP](./mcp.md) — welche Server beim Bau helfen
 - [Machbarkeit](./machbarkeit.md) — was an der Voranalyse stimmt, wo sie bricht, was eine ausprobierbare PWA zusätzlich braucht
@@ -21,5 +21,7 @@ Geprüft am 27. Oktober 2026 gegen die öffentlichen Angaben von VBB, `hafas-cli
 - [ADR 0007](./adr/0007-suche-ankunftsuhrzeit.md) — die Suche steuert die Ankunftsuhrzeit an
 - [ADR 0008](./adr/0008-alternative-zur-selben-ankunft.md) — die Alternative ist die nächste passende Verbindung zur selben Ankunft
 - [ADR 0009](./adr/0009-layouts-und-themen.md) — zwei Layouts, Hell und Dunkel, Schnellstart nur auf dem Handy
+
+- [ADR 0012](./adr/0012-bevorzugtes-verkehrsmittel.md) — eine Route bevorzugt ein Verkehrsmittel, keine Linie
 
 Begriffe stehen im [Glossar](../GLOSSARY.md). Die ADRs sind Vorschläge, noch nicht entschieden.

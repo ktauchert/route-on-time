@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { RouteCheck } from "./route-check";
 import type { CheckResult } from "@/lib/check";
@@ -68,12 +68,25 @@ describe("RouteCheck", () => {
     expect(screen.getByText("Geprüft um 07:00")).toBeTruthy();
     expect(screen.getByText(/Montag/)).toBeTruthy();
     expect(screen.getByText("Fußweg")).toBeTruthy();
-    expect(screen.getByText("S7")).toBeTruthy();
+    expect(screen.getAllByText("S7")).toHaveLength(2);
     expect(screen.getByText(/S\+U Alexanderplatz → S\+U Zoologischer Garten/)).toBeTruthy();
     expect(screen.getByText(/\+2 min/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Als heutige Verbindung" })).toBeTruthy();
     expect(screen.getByText("08:02 → 08:50")).toBeTruthy();
     expect(screen.getByText("48 min · direkt")).toBeTruthy();
+  });
+
+  it("offers more suggestions below the list, until fifteen are shown", () => {
+    const { rerender } = render(
+      <RouteCheck language="de" routeId="1" check={fitting} chosenToken={null} saveFailed={false} />,
+    );
+
+    expect(screen.getByRole("button", { name: "Weitere Vorschläge" })).toBeTruthy();
+
+    const many = { ...fitting, suggestions: Array.from({ length: 15 }, () => fitting.suggestions[0]) };
+    rerender(<RouteCheck language="de" routeId="1" check={many} chosenToken={null} saveFailed={false} />);
+
+    expect(screen.queryByRole("button", { name: "Weitere Vorschläge" })).toBeNull();
   });
 
   it("uses the English status words", () => {
@@ -84,7 +97,96 @@ describe("RouteCheck", () => {
     expect(screen.getByRole("button", { name: "Check now" })).toBeTruthy();
     expect(screen.getByText("Fits")).toBeTruthy();
     expect(screen.getByText("Walk")).toBeTruthy();
-    expect(screen.getByText("S7")).toBeTruthy();
+    expect(screen.getAllByText("S7")).toHaveLength(2);
+  });
+
+  it("shows the bar first and folds the legs away", () => {
+    const { container } = render(
+      <RouteCheck language="de" routeId="1" check={fitting} chosenToken={null} saveFailed={false} />,
+    );
+
+    expect(screen.getAllByRole("img")).toHaveLength(1);
+    const details = container.querySelector("details");
+    expect(details).toBeTruthy();
+    expect(details?.hasAttribute("open")).toBe(false);
+    expect(details?.querySelector("summary")?.textContent).toBe("Abschnitte");
+    expect(details?.textContent).toContain("S+U Alexanderplatz → S+U Zoologischer Garten");
+  });
+
+  it("colors the line chip by its mode", () => {
+    const { container } = render(
+      <RouteCheck language="de" routeId="1" check={fitting} chosenToken={null} saveFailed={false} />,
+    );
+
+    const chips = Array.from(container.querySelectorAll("details [data-mode]"));
+    expect(chips.map((chip) => chip.getAttribute("data-mode"))).toEqual(["suburban"]);
+  });
+
+  it("says when no fitting connection has the preferred mode", () => {
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={fitting}
+        chosenToken={null}
+        saveFailed={false}
+        preferredMode="regional"
+      />,
+    );
+
+    expect(screen.getByText("Keine passende Verbindung mit Regionalbahn.")).toBeTruthy();
+  });
+
+  it("stays quiet when the connection has the preferred mode", () => {
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={fitting}
+        chosenToken={null}
+        saveFailed={false}
+        preferredMode="suburban"
+      />,
+    );
+
+    expect(screen.queryByText(/Keine passende Verbindung mit/)).toBeNull();
+  });
+
+  it("names the lines it leaves out", () => {
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={fitting}
+        chosenToken={null}
+        saveFailed={false}
+        avoidLines={["S7", "RE1"]}
+      />,
+    );
+
+    const avoided = within(screen.getByText("Gemieden:").closest("p")!);
+    expect(avoided.getByText("S7").getAttribute("data-mode")).toBe("suburban");
+    expect(avoided.getByText("RE1").getAttribute("data-mode")).toBe("regional");
+  });
+
+  it("says nothing about avoided lines when there are none", () => {
+    render(<RouteCheck language="de" routeId="1" check={fitting} chosenToken={null} saveFailed={false} />);
+
+    expect(screen.queryByText("Gemieden:")).toBeNull();
+  });
+
+  it("explains an avoided line as the reason", () => {
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={{ ...fitting, status: "doesnt-fit", reason: "avoided" }}
+        chosenToken={null}
+        saveFailed={false}
+      />,
+    );
+
+    expect(screen.getByText("Die Verbindung nutzt eine Linie, die du meiden willst.")).toBeTruthy();
   });
 
   it("leads with the leave button for a route that was not left yet", () => {
@@ -238,7 +340,7 @@ describe("RouteCheck", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Alternative" })).toBeTruthy();
-    expect(screen.getByText("RE1")).toBeTruthy();
+    expect(screen.getAllByText("RE1").length).toBeGreaterThan(0);
     expect(screen.getByText(/S Bernau Bhf/)).toBeTruthy();
   });
 

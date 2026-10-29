@@ -3,7 +3,7 @@
 Beantwortet am 27. Oktober 2026, bis auf die Nutzungsregeln.
 
 1. **Gebiet.** Der erste Stand bleibt beim VBB.
-2. **Vorgabe.** Eine Route kann davon setzen, was sie braucht: Ankunft vor einer Uhrzeit, Mindestzeit beim Umstieg, höchstens eine Zahl Umstiege, eine bestimmte Linie, die heute gewählte Verbindung. Ohne Ankunftsuhrzeit und ohne heutige Verbindung weiß die Uhr nicht, wann sie prüfen soll.
+2. **Vorgabe.** Eine Route kann davon setzen, was sie braucht: Ankunft vor einer Uhrzeit, Mindestzeit beim Umstieg, höchstens eine Zahl Umstiege, die heute gewählte Verbindung. Seit 29. Oktober 2026 gibt es statt einer bestimmten Linie ein bevorzugtes Verkehrsmittel, siehe [ADR 0012](./adr/0012-bevorzugtes-verkehrsmittel.md). Ohne Ankunftsuhrzeit und ohne heutige Verbindung weiß die Uhr nicht, wann sie prüfen soll.
 3. **Unterwegs.** Die Prüfung sucht neu ab dem nächsten Halt, sobald eine Fahrt angetreten ist.
 4. **Meldungen.** Zuerst die offene App. Push auf das gesperrte Telefon kommt später.
 5. **Wer sich anmelden darf.** Die App hat Anmeldung und Registrierung. Die Mail-Bestätigung bleibt aus, solange das im Supabase-Projekt so eingestellt ist. Ein vergessenes Passwort setzt das Dashboard zurück.

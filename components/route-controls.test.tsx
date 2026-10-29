@@ -69,8 +69,9 @@ const route: StoredRoute = {
   weekdays: ["mon"],
   transferMinutes: null,
   maxTransfers: null,
-  lineId: null,
-  lineName: null,
+  preferredMode: null,
+  relaxed: false,
+  avoidLines: [],
   todayRefreshToken: null,
   todayServiceDate: null,
   leftAt: null,
@@ -94,6 +95,26 @@ describe("RouteIndex for a leave route", () => {
 
     expect(screen.getByText("Aufbruch per Knopf")).toBeTruthy();
     expect(screen.queryByText(/Ankunft/)).toBeNull();
+  });
+});
+
+describe("RouteIndex preferences", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("names the preferred mode on the card", () => {
+    render(
+      <RouteIndex
+        language="de"
+        routes={[{ ...route, preferredMode: "regional" }]}
+        today={[]}
+        missingTable={false}
+        glances={{}}
+      />,
+    );
+
+    expect(screen.getByText("Regionalbahn")).toBeTruthy();
   });
 });
 
@@ -195,7 +216,71 @@ describe("RouteForm", () => {
       save.getAttribute("data-size"),
     );
     expect(screen.getByRole("button", { name: "Löschen" }).getAttribute("data-variant")).toBe("ghost");
+    expect(screen.getByRole("button", { name: "Speichern" }).getAttribute("data-variant")).toBe("outline");
+  });
+
+  it("saves, or saves and checks right away", () => {
+    render(<RouteForm language="de" route={route} failed={false} />);
+
+    const both = screen.getByRole("button", { name: "Speichern und prüfen" });
+    expect(both.getAttribute("type")).toBe("submit");
+    expect(both.getAttribute("name")).toBe("then");
+    expect(both.getAttribute("value")).toBe("check");
+    expect(both.getAttribute("data-variant")).toBe("default");
+    expect(screen.getByRole("button", { name: "Speichern" }).getAttribute("name")).toBeNull();
+  });
+
+  it("does not offer a check for a route that starts with the leave button", () => {
+    render(<RouteForm language="de" route={{ ...route, arrival: "" }} failed={false} />);
+
+    expect(screen.queryByRole("button", { name: "Speichern und prüfen" })).toBeNull();
     expect(screen.getByRole("button", { name: "Speichern" }).getAttribute("data-variant")).toBe("default");
+  });
+
+  it("asks for a preferred mode of transport instead of a line", () => {
+    render(<RouteForm language="de" route={{ ...route, preferredMode: "regional" }} failed={false} />);
+
+    const select = screen.getByRole("combobox", { name: "Bevorzugtes Verkehrsmittel" }) as HTMLSelectElement;
+    expect(select.value).toBe("regional");
+    expect(Array.from(select.options).map((option) => option.textContent)).toEqual([
+      "Keine Vorliebe",
+      "S-Bahn",
+      "Regionalbahn",
+      "U-Bahn",
+      "Tram",
+      "Bus",
+    ]);
+    expect(screen.queryByRole("button", { name: "Linien am Start" })).toBeNull();
+  });
+
+  it("starts without a preferred mode", () => {
+    render(<RouteForm language="de" route={null} failed={false} />);
+
+    expect((screen.getByRole("combobox", { name: "Bevorzugtes Verkehrsmittel" }) as HTMLSelectElement).value).toBe("");
+  });
+
+  it("offers to avoid lines, with the chosen ones shown and sent with the form", () => {
+    render(<RouteForm language="de" route={{ ...route, avoidLines: ["S7"] }} failed={false} />);
+
+    expect(screen.getByText("Linien meiden")).toBeTruthy();
+    expect(screen.getByText("S7").getAttribute("data-mode")).toBe("suburban");
+    expect(document.querySelector("input[name=avoidLines]")?.getAttribute("value")).toBe("S7");
+    expect(screen.getByRole("button", { name: "Linien ändern" })).toHaveProperty("disabled", false);
+  });
+
+  it("does not open the line choice before a start is chosen", () => {
+    render(<RouteForm language="de" route={null} failed={false} />);
+
+    expect(screen.getByRole("button", { name: "Linien wählen" })).toHaveProperty("disabled", true);
+  });
+
+  it("offers relaxed travel and says what it does", () => {
+    render(<RouteForm language="de" route={{ ...route, relaxed: true }} failed={false} />);
+
+    const box = screen.getByRole("checkbox", { name: /Entspannt/ });
+    expect(box).toHaveProperty("checked", true);
+    expect(box.getAttribute("name")).toBe("relaxed");
+    expect(screen.getByText(/weniger Umstiege/)).toBeTruthy();
   });
 
   it("asks for an arrival time by default", () => {

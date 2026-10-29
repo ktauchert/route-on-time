@@ -13,12 +13,34 @@ Die gespeicherte Strecke in einer Richtung, von einem Start zu einem Ziel, an be
 _Avoid_: Wache, Fahrt, Linie, Favorit, Trip, Hin- und Rückfahrt
 
 **Vorgabe**:
-Was auf dieser Route stimmen muss, damit sie passt. Eine Route setzt davon nur, was sie verlangt: Ankunft vor einer Uhrzeit, Mindestzeit beim Umstieg, Höchstzahl der Umstiege, eine bestimmte Linie, die heute gewählte Verbindung.
+Was auf dieser Route stimmen muss, damit sie passt. Eine Route setzt davon nur, was sie verlangt: Ankunft vor einer Uhrzeit, Mindestzeit beim Umstieg, Höchstzahl der Umstiege, die heute gewählte Verbindung. Dazu kommen zwei Vorlieben, die nichts ausschließen: ein bevorzugtes Verkehrsmittel und „entspannt“.
 _Avoid_: Anspruch, Präferenz, Filter
 
 **heutige Verbindung**:
 Die Verbindung, die an diesem Tag für eine Route gewählt ist und weitergelesen wird.
 _Avoid_: Trip, Fahrt
+
+**Verkehrsmittel**:
+Die Art, wie ein Abschnitt fährt: S-Bahn, U-Bahn, Tram, Bus, Regionalbahn, Fernzug, Fähre. Nicht die einzelne Linie. Jedes Verkehrsmittel hat eine Farbe: S-Bahn grün, U-Bahn blau, Tram rot, Bus violett, Regionalbahn dunkelrot, Fähre türkis, Fernzug grau.
+_Avoid_: Produkt, Modus, Bahn
+
+**bevorzugtes Verkehrsmittel**:
+Das Verkehrsmittel, das eine Route lieber nutzt. Unter den passenden Verbindungen kommt eine damit zuerst. Gibt es keine, gilt die erste passende, und die App sagt es.
+_Avoid_: Linie, Pflicht
+
+**gemiedene Linie**:
+Eine einzelne Linie, die eine Route nie benutzen soll, zum Beispiel die S7. Die Suche lässt sie aus, die anderen Linien derselben Art bleiben erlaubt. Eine Verbindung mit gemiedener Linie gilt nie als passend.
+_Avoid_: gesperrte Linie, ausgeschlossene Linie
+
+**Zeitfenster**:
+Wie viele Minuten eine Verbindung vor der Ankunftsuhrzeit ankommen darf, um noch vorgeschlagen zu werden. Voreinstellung 60, einstellbar von 10 bis 240 in den Einstellungen, pro Nutzer. Später als die Ankunftsuhrzeit passt nie. Kommt nichts im Fenster an, zählt die späteste frühere Verbindung.
+
+**Weitere Vorschläge**:
+Ein Knopf unter den Vorschlägen. Er sucht eine Stufe weiter weg, bei Ankunft früher, beim Aufbruch per Knopf später, und hängt die neuen Vorschläge an, bis es 15 sind. Die nächste Prüfung ersetzt die Liste wieder.
+
+**entspannt**:
+Eine Vorliebe der Route: Unter den passenden Verbindungen, die höchstens 20 Minuten später ankommen als die früheste, gewinnt die mit den wenigsten Umstiegen.
+_Avoid_: ruhig, gemütlich
 
 **Ort**:
 Eine Haltestelle oder eine Adresse. Start und Ziel einer Route sind Orte.
@@ -53,7 +75,7 @@ Wie die Route gerade dasteht: passt, passt nicht oder unklar.
 _Avoid_: Bewertung, Status, Alert
 
 **passt**:
-Die Verbindung, die für die Route zählt, erfüllt die Vorgabe. Das ist die heutige Verbindung, sonst der erste Vorschlag, der sie erfüllt.
+Die Verbindung, die für die Route zählt, erfüllt die Vorgabe. Das ist die heutige Verbindung, sonst der Vorschlag, der sie erfüllt und der Ankunftsuhrzeit am nächsten kommt, damit niemand am Ziel wartet. Bei einer Route mit Aufbruch zählt die früheste Ankunft.
 _Avoid_: brauchbar, pünktlich, verfügbar
 
 **passt nicht**:

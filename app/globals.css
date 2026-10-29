@@ -76,6 +76,15 @@
     --fits: oklch(0.42 0.07 150);
     --miss: oklch(0.47 0.12 25);
     --unclear: oklch(0.48 0.07 75);
+    --mode-on: oklch(0.99 0 0);
+    --mode-suburban: oklch(0.52 0.13 150);
+    --mode-subway: oklch(0.52 0.14 250);
+    --mode-tram: oklch(0.55 0.2 28);
+    --mode-bus: oklch(0.45 0.16 330);
+    --mode-ferry: oklch(0.55 0.1 200);
+    --mode-regional: oklch(0.4 0.14 20);
+    --mode-express: oklch(0.4 0.01 60);
+    --mode-other: oklch(0.5 0.01 60);
     --chart-1: oklch(0.869 0.005 56.366);
     --chart-2: oklch(0.553 0.013 58.071);
     --chart-3: oklch(0.444 0.011 73.639);
@@ -116,6 +125,15 @@
     --fits: oklch(0.78 0.08 150);
     --miss: oklch(0.78 0.1 25);
     --unclear: oklch(0.82 0.08 85);
+    --mode-on: oklch(0.15 0.005 50);
+    --mode-suburban: oklch(0.75 0.15 150);
+    --mode-subway: oklch(0.72 0.12 245);
+    --mode-tram: oklch(0.72 0.15 28);
+    --mode-bus: oklch(0.72 0.13 330);
+    --mode-ferry: oklch(0.76 0.09 200);
+    --mode-regional: oklch(0.7 0.13 20);
+    --mode-express: oklch(0.78 0.01 60);
+    --mode-other: oklch(0.7 0.01 60);
     --chart-1: oklch(0.869 0.005 56.366);
     --chart-2: oklch(0.553 0.013 58.071);
     --chart-3: oklch(0.444 0.011 73.639);
@@ -142,3 +160,14 @@
     @apply font-sans antialiased;
     }
 }
+.mode-fill {
+  background: var(--mode-color, var(--mode-other));
+  color: var(--mode-on);
+}
+.mode-fill[data-mode="suburban"] { --mode-color: var(--mode-suburban); }
+.mode-fill[data-mode="subway"] { --mode-color: var(--mode-subway); }
+.mode-fill[data-mode="tram"] { --mode-color: var(--mode-tram); }
+.mode-fill[data-mode="bus"] { --mode-color: var(--mode-bus); }
+.mode-fill[data-mode="ferry"] { --mode-color: var(--mode-ferry); }
+.mode-fill[data-mode="regional"] { --mode-color: var(--mode-regional); }
+.mode-fill[data-mode="express"] { --mode-color: var(--mode-express); }

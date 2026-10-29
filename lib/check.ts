@@ -1,4 +1,6 @@
+import { usesMode } from "./mode";
 import { appliesOn, type Weekday } from "./route";
+import { defaultWindowMinutes } from "./window";
 
 export type CheckStatus = "fits" | "doesnt-fit" | "unclear";
 
@@ -6,8 +8,8 @@ export type CheckReason =
   | "arrival"
   | "transfer"
   | "transfers"
-  | "line"
   | "cancelled"
+  | "avoided"
   | "empty"
   | "no-answer"
   | "stale";
@@ -15,7 +17,7 @@ export type CheckReason =
 export type RawLeg = {
   walking?: boolean;
   cancelled?: boolean;
-  line?: { id?: string; name?: string } | null;
+  line?: { id?: string; name?: string; product?: string } | null;
   origin?: { id?: string; name?: string } | null;
   destination?: { id?: string; name?: string } | null;
   departure?: string | null;
@@ -40,6 +42,7 @@ export type LegView = {
   walking: boolean;
   lineId: string | null;
   lineName: string | null;
+  product?: string | null;
   originId: string | null;
   originName: string;
   destinationId: string | null;
@@ -84,8 +87,10 @@ export type RouteToCheck = {
   weekdays: readonly Weekday[];
   transferMinutes: number | null;
   maxTransfers: number | null;
-  lineId: string | null;
-  lineName: string | null;
+  preferredMode: string | null;
+  relaxed: boolean;
+  avoidLines?: readonly string[];
+  windowMinutes?: number;
   todayRefreshToken: string | null;
   todayServiceDate: string | null;
   leftAt?: string | null;
@@ -103,8 +108,9 @@ export type Auskunft = {
     to: string,
     at: Date,
     direction?: "arrival" | "departure",
+    avoid?: string[],
   ) => Promise<JourneyPage>;
-  earlier?: (from: string, to: string, earlierRef: string) => Promise<JourneyPage>;
+  earlier?: (from: string, to: string, earlierRef: string, avoid?: string[]) => Promise<JourneyPage>;
   refreshJourney: (
     refreshToken: string,
   ) => Promise<{ journey: RawJourney | null; realtimeDataUpdatedAt: number | null }>;
@@ -181,6 +187,7 @@ function mapLeg(raw: RawLeg): LegView {
     walking: Boolean(raw.walking),
     lineId: raw.line?.id ?? null,
     lineName: raw.line?.name ?? null,
+    product: raw.line?.product ?? null,
     originId: raw.origin?.id ?? null,
     originName: raw.origin?.name ?? "",
     destinationId: raw.destination?.id ?? null,
@@ -264,8 +271,19 @@ function rideLegs(suggestion: Suggestion) {
   return suggestion.legs.filter((leg) => !leg.walking);
 }
 
+function lineKey(name: string | null | undefined) {
+  return (name ?? "").replace(/\s+/g, "").toUpperCase();
+}
+
+function usesAvoidedLine(suggestion: Suggestion, route: RouteToCheck) {
+  const avoided = new Set((route.avoidLines ?? []).map(lineKey).filter(Boolean));
+  if (avoided.size === 0) return false;
+  return rideLegs(suggestion).some((leg) => avoided.has(lineKey(leg.lineName)));
+}
+
 function problemOf(suggestion: Suggestion, route: RouteToCheck, serviceDate: string): CheckReason | null {
   if (suggestion.legs.some((leg) => leg.cancelled)) return "cancelled";
+  if (usesAvoidedLine(suggestion, route)) return "avoided";
 
   if (route.arrival) {
     const arrival = suggestion.legs[suggestion.legs.length - 1]?.arrival;
@@ -288,15 +306,6 @@ function problemOf(suggestion: Suggestion, route: RouteToCheck, serviceDate: str
     return "transfers";
   }
 
-  const lineId = route.lineId?.trim() || null;
-  const lineName = route.lineName?.trim() || null;
-  if (lineId || lineName) {
-    const matches = rides.some(
-      (leg) => (lineId && leg.lineId === lineId) || (lineName && leg.lineName === lineName),
-    );
-    if (!matches) return "line";
-  }
-
   return null;
 }
 
@@ -308,6 +317,83 @@ function isStale(departure: string, realtimeUpdatedAt: number | null, now: Date)
   return withinNextHour && now.getTime() - updatedMs > staleMs;
 }
 
+function avoidOf(route: RouteToCheck) {
+  return [...(route.avoidLines ?? [])];
+}
+
+const relaxedSlackMs = 20 * 60 * 1000;
+
+function endOf(suggestion: Suggestion) {
+  const arrival = suggestion.legs[suggestion.legs.length - 1]?.arrival;
+  return arrival ? new Date(arrival).getTime() : Infinity;
+}
+
+function transfersOf(suggestion: Suggestion) {
+  return Math.max(0, rideLegs(suggestion).length - 1);
+}
+
+function startOf(suggestion: Suggestion) {
+  const departure = suggestion.legs[0]?.departure;
+  return departure ? new Date(departure).getTime() : 0;
+}
+
+// An arrival time asks for the connection that arrives closest to it, so nobody waits at the destination.
+// A route that starts with the leave button asks for the earliest arrival instead.
+function pickFitting(fitting: Suggestion[], route: RouteToCheck): Suggestion | undefined {
+  if (fitting.length === 0) return undefined;
+
+  const preferred = route.preferredMode
+    ? fitting.filter((suggestion) => usesMode(suggestion.legs, route.preferredMode as string))
+    : [];
+  const pool = preferred.length > 0 ? preferred : fitting;
+  const byArrival = Boolean(route.arrival);
+
+  const ranked = [...pool].sort((a, b) => {
+    const arrival = byArrival ? endOf(b) - endOf(a) : endOf(a) - endOf(b);
+    if (arrival !== 0) return arrival;
+    const transfers = transfersOf(a) - transfersOf(b);
+    if (transfers !== 0) return transfers;
+    return byArrival ? startOf(b) - startOf(a) : startOf(a) - startOf(b);
+  });
+  const best = ranked[0];
+  if (!route.relaxed || !best) return best;
+
+  const near = ranked.filter((suggestion) =>
+    byArrival ? endOf(suggestion) >= endOf(best) - relaxedSlackMs : endOf(suggestion) <= endOf(best) + relaxedSlackMs,
+  );
+  return near.reduce((chosen, next) => (transfersOf(next) < transfersOf(chosen) ? next : chosen));
+}
+
+const shownCount = 5;
+
+function shownSuggestions(all: Suggestion[], picked: Suggestion | undefined, route: RouteToCheck) {
+  if (all.length <= shownCount) return all;
+  const rest = all.filter((suggestion) => suggestion !== picked);
+  const nearest = route.arrival ? rest.slice(-(shownCount - 1)) : rest.slice(0, shownCount - 1);
+  const keep = new Set<Suggestion>(picked ? [picked, ...nearest] : rest.slice(0, shownCount));
+  return all.filter((suggestion) => keep.has(suggestion));
+}
+
+// An arrival route only considers connections that arrive within the window around its time.
+// When every fitting connection is earlier, the latest of them still counts so the route is not
+// reported as broken for arriving early.
+function withinWindow(all: Suggestion[], route: RouteToCheck, serviceDate: string) {
+  if (!route.arrival) return all;
+  const deadline = berlinInstant(serviceDate, route.arrival).getTime();
+  const windowMs = (route.windowMinutes ?? defaultWindowMinutes) * 60 * 1000;
+  const inside = all.filter((suggestion) => {
+    const end = endOf(suggestion);
+    return end >= deadline - windowMs && end <= deadline + windowMs;
+  });
+  if (inside.some((suggestion) => problemOf(suggestion, route, serviceDate) === null)) return inside;
+
+  const earlier = all
+    .filter((suggestion) => endOf(suggestion) < deadline - windowMs && problemOf(suggestion, route, serviceDate) === null)
+    .sort((a, b) => endOf(b) - endOf(a))[0];
+  if (earlier) return [earlier, ...inside].sort((a, b) => endOf(a) - endOf(b));
+  return inside.length > 0 ? inside : all;
+}
+
 function judge(
   raws: RawJourney[],
   realtimeUpdatedAt: number | null,
@@ -316,12 +402,12 @@ function judge(
   now: Date,
   checkedAt: string,
 ): CheckResult {
-  const suggestions = raws
+  const found = raws
     .map(toSuggestion)
-    .filter((suggestion): suggestion is Suggestion => suggestion !== null)
-    .slice(0, 5);
+    .filter((suggestion): suggestion is Suggestion => suggestion !== null);
+  const all = withinWindow(found, route, serviceDate);
 
-  if (suggestions.length === 0) {
+  if (all.length === 0) {
     return {
       serviceDate,
       checkedAt,
@@ -336,8 +422,12 @@ function judge(
     };
   }
 
-  const fitting = suggestions.find((suggestion) => problemOf(suggestion, route, serviceDate) === null);
-  const connection = fitting ?? suggestions[0];
+  const fitting = pickFitting(
+    all.filter((suggestion) => problemOf(suggestion, route, serviceDate) === null),
+    route,
+  );
+  const connection = fitting ?? all[0];
+  const suggestions = shownSuggestions(all, connection, route);
   const departure = connection.legs[0]?.departure ?? "";
 
   if (isStale(departure, realtimeUpdatedAt, now)) {
@@ -403,7 +493,7 @@ async function withAlternative(
 
   let page: JourneyPage;
   try {
-    page = await auskunft.earlier(fromId, route.destinationId, earlierRef);
+    page = await auskunft.earlier(fromId, route.destinationId, earlierRef, avoidOf(route));
   } catch {
     return { ...result, alternative: null, noAlternative: true };
   }
@@ -448,12 +538,19 @@ function isFailure(result: CheckResult) {
   return result.status === "unclear" && (result.reason === "no-answer" || result.reason === "stale");
 }
 
+function leftAfter(route: RouteToCheck, previous: CheckResult | null) {
+  if (route.arrival || !route.leftAt || !previous) return false;
+  return new Date(route.leftAt).getTime() > new Date(previous.checkedAt).getTime();
+}
+
 export async function runCheck(
   route: RouteToCheck,
   now: Date,
   auskunft: Auskunft,
-  previous: CheckResult | null = null,
+  carried: CheckResult | null = null,
 ): Promise<CheckResult> {
+  // A new tap on the leave button starts over: the old connection says nothing about where the person is now.
+  const previous = leftAfter(route, carried) ? null : carried;
   const result = await judgeRoute(route, now, auskunft, previous);
   if (!isFailure(result)) return { ...result, failedAt: null };
 
@@ -502,8 +599,8 @@ async function judgeRoute(
     const fromId = moved ? position.id : route.startId;
     const fromName = moved ? position.name : null;
     const found = leave
-      ? await auskunft.journeys(fromId, route.destinationId, now, "departure")
-      : await auskunft.journeys(fromId, route.destinationId, berlinInstant(serviceDate, route.arrival));
+      ? await auskunft.journeys(fromId, route.destinationId, now, "departure", avoidOf(route))
+      : await auskunft.journeys(fromId, route.destinationId, berlinInstant(serviceDate, route.arrival), "arrival", avoidOf(route));
     const judged = judge(found.journeys, found.realtimeDataUpdatedAt, route, serviceDate, now, checkedAt);
     const checked = leave
       ? afterLeaveSearch(judged, chosen)
@@ -512,6 +609,54 @@ async function judgeRoute(
     return { ...checked, connection, searched: true, searchFromName: fromName };
   } catch {
     return unanswered(serviceDate, checkedAt);
+  }
+}
+
+export const maximumSuggestions = 15;
+
+// Looks one step further out than the suggestions already on the stand: earlier arrivals for an arrival
+// route, later departures for a route that starts with the leave button. Status and connection stay.
+export async function moreSuggestions(
+  route: RouteToCheck,
+  now: Date,
+  auskunft: Auskunft,
+  current: CheckResult | null,
+): Promise<CheckResult | null> {
+  if (!current || current.suggestions.length === 0) return null;
+  const leave = !route.arrival;
+  const known = current.suggestions;
+  const room = maximumSuggestions - known.length;
+  if (room <= 0) return null;
+
+  try {
+    const from = route.startId;
+    const found = leave
+      ? await auskunft.journeys(
+          from,
+          route.destinationId,
+          new Date(Math.max(...known.map(startOf)) + 60 * 1000),
+          "departure",
+          avoidOf(route),
+        )
+      : await auskunft.journeys(
+          from,
+          route.destinationId,
+          new Date(Math.min(...known.map(endOf)) - 60 * 1000),
+          "arrival",
+          avoidOf(route),
+        );
+
+    const seen = new Set(known.map((suggestion) => suggestion.refreshToken));
+    const fresh = found.journeys
+      .map(toSuggestion)
+      .filter((suggestion): suggestion is Suggestion => suggestion !== null && !seen.has(suggestion.refreshToken))
+      .sort((a, b) => (leave ? startOf(a) - startOf(b) : endOf(b) - endOf(a)))
+      .slice(0, room);
+
+    const suggestions = [...known, ...fresh].sort((a, b) => (leave ? startOf(a) - startOf(b) : endOf(a) - endOf(b)));
+    return { ...current, suggestions };
+  } catch {
+    return null;
   }
 }
 

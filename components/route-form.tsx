@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { saveRoute, searchLines } from "@/app/routes/actions";
+import { AvoidLines } from "@/components/avoid-lines";
 import { DeleteRoute } from "@/components/delete-route";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { defaultWeekdays, weekdayLabels, weekdays, type Weekday } from "@/lib/route";
+import { modeLabel, preferableModes } from "@/lib/mode";
 import { createStopSearch, type StopMatch } from "@/lib/stop-search";
 import type { Language } from "@/lib/preferences";
 import type { StoredRoute } from "@/lib/route";
@@ -29,18 +31,9 @@ export function RouteForm({
   const [destination, setDestination] = useState<Place | null>(
     route ? { id: route.destinationId, name: route.destinationName } : null,
   );
-  const [lines, setLines] = useState<Place[]>([]);
-  const [line, setLine] = useState<Place | null>(
-    route?.lineId && route.lineName ? { id: route.lineId, name: route.lineName } : null,
-  );
+  const [avoid, setAvoid] = useState<string[]>(route?.avoidLines ?? []);
   const [days, setDays] = useState<Weekday[]>(route?.weekdays ?? [...defaultWeekdays]);
   const [timing, setTiming] = useState<"arrival" | "leave">(route && !route.arrival ? "leave" : "arrival");
-
-  async function loadLines() {
-    if (!start) return;
-    const places = await searchLines(start.id);
-    setLines(places.map((place) => ({ id: place.id, name: place.name })));
-  }
 
   function toggleDay(day: Weekday) {
     setDays((current) => {
@@ -66,8 +59,6 @@ export function RouteForm({
       <input type="hidden" name="startName" value={start?.name ?? ""} />
       <input type="hidden" name="destinationId" value={destination?.id ?? ""} />
       <input type="hidden" name="destinationName" value={destination?.name ?? ""} />
-      <input type="hidden" name="lineId" value={line?.id ?? ""} />
-      <input type="hidden" name="lineName" value={line?.name ?? ""} />
       {days.map((day) => (
         <input key={day} type="hidden" name="weekdays" value={day} />
       ))}
@@ -93,11 +84,7 @@ export function RouteForm({
         <PlaceField
           label={isGerman ? "Start" : "Start"}
           selected={start}
-          onSelect={(place) => {
-            setStart(place);
-            setLine(null);
-            setLines([]);
-          }}
+          onSelect={setStart}
         />
         <PlaceField
           label={isGerman ? "Ziel" : "Destination"}
@@ -153,31 +140,41 @@ export function RouteForm({
           </label>
         </div>
 
-        <div className="flex flex-col gap-2 text-sm">
-          <span className="font-medium">{isGerman ? "Linie" : "Line"}</span>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" size="sm" variant="outline" onClick={loadLines} disabled={!start}>
-              {isGerman ? "Linien am Start" : "Lines at the start"}
-            </Button>
-            {line ? <p className="font-medium text-signal">✓ {line.name}</p> : null}
-          </div>
-          {lines.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {lines.map((item) => (
-                <Button
-                  key={item.id}
-                  type="button"
-                  size="sm"
-                  variant={line?.id === item.id ? "default" : "outline"}
-                  aria-pressed={line?.id === item.id}
-                  onClick={() => setLine(item)}
-                >
-                  {item.name}
-                </Button>
-              ))}
-            </div>
-          ) : null}
-        </div>
+        <label className={field}>
+          {isGerman ? "Bevorzugtes Verkehrsmittel" : "Preferred mode of transport"}
+          <select
+            name="preferredMode"
+            defaultValue={route?.preferredMode ?? ""}
+            className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <option value="">{isGerman ? "Keine Vorliebe" : "No preference"}</option>
+            {preferableModes.map((mode) => (
+              <option key={mode} value={mode}>
+                {modeLabel(language, mode)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <AvoidLines
+          language={language}
+          value={avoid}
+          onChange={setAvoid}
+          stopIds={[start?.id, destination?.id].filter((id): id is string => Boolean(id))}
+          loadLines={searchLines}
+        />
+
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" name="relaxed" defaultChecked={route?.relaxed ?? false} className="mt-1" />
+          <span>
+            <span className="font-medium">{isGerman ? "Entspannt" : "Relaxed"}</span>
+            <span className="block text-muted-foreground">
+              {isGerman
+                ? "Lieber weniger Umstiege, auch wenn du bis zu 20 Minuten später ankommst."
+                : "Fewer transfers, even if you arrive up to 20 minutes later."}
+            </span>
+          </span>
+        </label>
       </fieldset>
 
       <fieldset className="flex flex-wrap gap-2">
@@ -198,7 +195,17 @@ export function RouteForm({
 
     </form>
     <div className="flex flex-wrap items-center gap-2 border-t pt-4">
-      <Button type="submit" form={formId} disabled={sameStop}>
+      {timing === "arrival" ? (
+        <Button type="submit" form={formId} name="then" value="check" disabled={sameStop}>
+          {isGerman ? "Speichern und prüfen" : "Save and check"}
+        </Button>
+      ) : null}
+      <Button
+        type="submit"
+        form={formId}
+        variant={timing === "arrival" ? "outline" : "default"}
+        disabled={sameStop}
+      >
         {isGerman ? "Speichern" : "Save"}
       </Button>
       <Button variant="outline" asChild>

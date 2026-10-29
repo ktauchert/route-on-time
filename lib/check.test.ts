@@ -257,6 +257,77 @@ describe("runCheck", () => {
     expect(result.connection?.refreshToken).toBe("s-bahn");
   });
 
+  describe("picking the connection", () => {
+    function through(token: string, departure: string, arrival: string, rides = 1, extra: Record<string, unknown> = {}) {
+      const legs = Array.from({ length: rides }, (_, index) =>
+        ride({
+          departure: index === 0 ? departure : "2026-10-26T07:30:00+01:00",
+          arrival: index === rides - 1 ? arrival : "2026-10-26T07:25:00+01:00",
+          ...extra,
+        }),
+      );
+      return journey(token, legs);
+    }
+
+    it("takes the connection that arrives closest to the arrival time, not the first of the list", async () => {
+      const client = auskunft({
+        journeys: [
+          through("early", "2026-10-26T05:57:00+01:00", "2026-10-26T07:14:00+01:00"),
+          through("later", "2026-10-26T06:37:00+01:00", "2026-10-26T07:45:00+01:00"),
+        ],
+      });
+
+      const result = await runCheck(route({ arrival: "08:00" }), new Date("2026-10-26T05:00:00+01:00"), client);
+
+      expect(result.status).toBe("fits");
+      expect(result.connection?.refreshToken).toBe("later");
+    });
+
+    it("does not drop the best connection when the auskunft returns more than five", async () => {
+      const early = Array.from({ length: 5 }, (_, index) =>
+        through(`early-${index}`, `2026-10-26T04:${10 + index}:00+01:00`, `2026-10-26T06:${10 + index}:00+01:00`),
+      );
+      const client = auskunft({
+        journeys: [...early, through("best", "2026-10-26T06:46:00+01:00", "2026-10-26T07:45:00+01:00")],
+      });
+
+      const result = await runCheck(route({ arrival: "08:00" }), new Date("2026-10-26T04:00:00+01:00"), client);
+
+      expect(result.connection?.refreshToken).toBe("best");
+      expect(result.suggestions).toHaveLength(5);
+      expect(result.suggestions.map((item) => item.refreshToken)).toContain("best");
+      expect(result.suggestions.map((item) => item.refreshToken)).not.toContain("early-0");
+    });
+
+    it("prefers fewer transfers when two connections arrive together, then the shorter trip", async () => {
+      const client = auskunft({
+        journeys: [
+          through("two-rides", "2026-10-26T06:00:00+01:00", "2026-10-26T07:30:00+01:00", 2),
+          through("long-direct", "2026-10-26T06:10:00+01:00", "2026-10-26T07:30:00+01:00"),
+          through("short-direct", "2026-10-26T06:40:00+01:00", "2026-10-26T07:30:00+01:00"),
+        ],
+      });
+
+      const result = await runCheck(route({ arrival: "08:00" }), new Date("2026-10-26T05:00:00+01:00"), client);
+
+      expect(result.connection?.refreshToken).toBe("short-direct");
+    });
+
+    it("takes the earliest arrival for a route that starts with the leave button", async () => {
+      const now = new Date("2026-10-26T17:12:00+01:00");
+      const client = auskunft({
+        journeys: [
+          through("soon", "2026-10-26T17:20:00+01:00", "2026-10-26T18:10:00+01:00"),
+          through("later", "2026-10-26T17:50:00+01:00", "2026-10-26T18:40:00+01:00"),
+        ],
+      });
+
+      const result = await runCheck(route({ arrival: "", leftAt: now.toISOString() }), now, client);
+
+      expect(result.connection?.refreshToken).toBe("soon");
+    });
+  });
+
   describe("relaxed travel", () => {
     function viaTransfer(token: string, arrival: string) {
       return journey(token, [
@@ -269,16 +340,16 @@ describe("runCheck", () => {
       return journey(token, [ride({ departure: "2026-10-26T08:10:00+01:00", arrival })]);
     }
 
-    it("takes the first fitting connection by default", async () => {
-      const client = auskunft({ journeys: [viaTransfer("quick", "2026-10-26T08:40:00+01:00"), direct("calm", "2026-10-26T08:55:00+01:00")] });
+    it("takes the latest fitting arrival by default, even with a transfer", async () => {
+      const client = auskunft({ journeys: [direct("calm", "2026-10-26T08:45:00+01:00"), viaTransfer("quick", "2026-10-26T08:55:00+01:00")] });
 
       const result = await runCheck(route(), mondayMorning, client);
 
       expect(result.connection?.refreshToken).toBe("quick");
     });
 
-    it("takes fewer transfers when the arrival is at most 20 minutes later", async () => {
-      const client = auskunft({ journeys: [viaTransfer("quick", "2026-10-26T08:40:00+01:00"), direct("calm", "2026-10-26T08:55:00+01:00")] });
+    it("takes fewer transfers when the arrival is at most 20 minutes earlier", async () => {
+      const client = auskunft({ journeys: [direct("calm", "2026-10-26T08:45:00+01:00"), viaTransfer("quick", "2026-10-26T08:55:00+01:00")] });
 
       const result = await runCheck(route({ relaxed: true }), mondayMorning, client);
 
@@ -286,12 +357,29 @@ describe("runCheck", () => {
       expect(result.connection?.refreshToken).toBe("calm");
     });
 
-    it("does not wait more than 20 minutes for it", async () => {
-      const client = auskunft({ journeys: [viaTransfer("quick", "2026-10-26T08:30:00+01:00"), direct("late-calm", "2026-10-26T08:55:00+01:00")] });
+    it("does not arrive more than 20 minutes earlier for it", async () => {
+      const client = auskunft({ journeys: [direct("far-too-early", "2026-10-26T08:20:00+01:00"), viaTransfer("quick", "2026-10-26T08:55:00+01:00")] });
 
       const result = await runCheck(route({ relaxed: true }), mondayMorning, client);
 
       expect(result.connection?.refreshToken).toBe("quick");
+    });
+
+    it("takes fewer transfers within 20 minutes later when the person leaves now", async () => {
+      const now = new Date("2026-10-26T17:12:00+01:00");
+      const client = auskunft({
+        journeys: [
+          journey("quick", [
+            ride({ departure: "2026-10-26T17:20:00+01:00", arrival: "2026-10-26T17:50:00+01:00" }),
+            ride({ departure: "2026-10-26T17:55:00+01:00", arrival: "2026-10-26T18:10:00+01:00" }),
+          ]),
+          journey("calm", [ride({ departure: "2026-10-26T17:30:00+01:00", arrival: "2026-10-26T18:25:00+01:00" })]),
+        ],
+      });
+
+      const result = await runCheck(route({ arrival: "", leftAt: now.toISOString(), relaxed: true }), now, client);
+
+      expect(result.connection?.refreshToken).toBe("calm");
     });
 
     it("applies the preferred mode first and relaxes within it", async () => {
@@ -382,7 +470,7 @@ describe("runCheck", () => {
     expect(result.connection?.refreshToken).toBe("late");
   });
 
-  it("ignores a sixth suggestion", async () => {
+  it("shows five suggestions and still finds a fitting sixth one", async () => {
     const late = (token: string) =>
       journey(token, [ride({ arrival: "2026-10-26T09:20:00+01:00" })]);
     const client = auskunft({
@@ -392,7 +480,9 @@ describe("runCheck", () => {
     const result = await runCheck(route(), mondayMorning, client);
 
     expect(result.suggestions).toHaveLength(5);
-    expect(result.status).toBe("doesnt-fit");
+    expect(result.status).toBe("fits");
+    expect(result.connection?.refreshToken).toBe("sixth");
+    expect(result.suggestions.map((item) => item.refreshToken)).toContain("sixth");
   });
 
   it("uses an empty sentence when the auskunft returns no journey", async () => {

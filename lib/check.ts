@@ -330,6 +330,13 @@ function transfersOf(suggestion: Suggestion) {
   return Math.max(0, rideLegs(suggestion).length - 1);
 }
 
+function startOf(suggestion: Suggestion) {
+  const departure = suggestion.legs[0]?.departure;
+  return departure ? new Date(departure).getTime() : 0;
+}
+
+// An arrival time asks for the connection that arrives closest to it, so nobody waits at the destination.
+// A route that starts with the leave button asks for the earliest arrival instead.
 function pickFitting(fitting: Suggestion[], route: RouteToCheck): Suggestion | undefined {
   if (fitting.length === 0) return undefined;
 
@@ -337,11 +344,32 @@ function pickFitting(fitting: Suggestion[], route: RouteToCheck): Suggestion | u
     ? fitting.filter((suggestion) => usesMode(suggestion.legs, route.preferredMode as string))
     : [];
   const pool = preferred.length > 0 ? preferred : fitting;
-  if (!route.relaxed) return pool[0];
+  const byArrival = Boolean(route.arrival);
 
-  const earliest = Math.min(...pool.map(endOf));
-  const near = pool.filter((suggestion) => endOf(suggestion) <= earliest + relaxedSlackMs);
-  return near.reduce((best, next) => (transfersOf(next) < transfersOf(best) ? next : best));
+  const ranked = [...pool].sort((a, b) => {
+    const arrival = byArrival ? endOf(b) - endOf(a) : endOf(a) - endOf(b);
+    if (arrival !== 0) return arrival;
+    const transfers = transfersOf(a) - transfersOf(b);
+    if (transfers !== 0) return transfers;
+    return byArrival ? startOf(b) - startOf(a) : startOf(a) - startOf(b);
+  });
+  const best = ranked[0];
+  if (!route.relaxed || !best) return best;
+
+  const near = ranked.filter((suggestion) =>
+    byArrival ? endOf(suggestion) >= endOf(best) - relaxedSlackMs : endOf(suggestion) <= endOf(best) + relaxedSlackMs,
+  );
+  return near.reduce((chosen, next) => (transfersOf(next) < transfersOf(chosen) ? next : chosen));
+}
+
+const shownCount = 5;
+
+function shownSuggestions(all: Suggestion[], picked: Suggestion | undefined, route: RouteToCheck) {
+  if (all.length <= shownCount) return all;
+  const rest = all.filter((suggestion) => suggestion !== picked);
+  const nearest = route.arrival ? rest.slice(-(shownCount - 1)) : rest.slice(0, shownCount - 1);
+  const keep = new Set<Suggestion>(picked ? [picked, ...nearest] : rest.slice(0, shownCount));
+  return all.filter((suggestion) => keep.has(suggestion));
 }
 
 function judge(
@@ -352,12 +380,11 @@ function judge(
   now: Date,
   checkedAt: string,
 ): CheckResult {
-  const suggestions = raws
+  const all = raws
     .map(toSuggestion)
-    .filter((suggestion): suggestion is Suggestion => suggestion !== null)
-    .slice(0, 5);
+    .filter((suggestion): suggestion is Suggestion => suggestion !== null);
 
-  if (suggestions.length === 0) {
+  if (all.length === 0) {
     return {
       serviceDate,
       checkedAt,
@@ -373,10 +400,11 @@ function judge(
   }
 
   const fitting = pickFitting(
-    suggestions.filter((suggestion) => problemOf(suggestion, route, serviceDate) === null),
+    all.filter((suggestion) => problemOf(suggestion, route, serviceDate) === null),
     route,
   );
-  const connection = fitting ?? suggestions[0];
+  const connection = fitting ?? all[0];
+  const suggestions = shownSuggestions(all, connection, route);
   const departure = connection.legs[0]?.departure ?? "";
 
   if (isStale(departure, realtimeUpdatedAt, now)) {

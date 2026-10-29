@@ -69,7 +69,7 @@ Wie die Route gerade dasteht: passt, passt nicht oder unklar.
 _Avoid_: Bewertung, Status, Alert
 
 **passt**:
-Die Verbindung, die für die Route zählt, erfüllt die Vorgabe. Das ist die heutige Verbindung, sonst der erste Vorschlag, der sie erfüllt.
+Die Verbindung, die für die Route zählt, erfüllt die Vorgabe. Das ist die heutige Verbindung, sonst der Vorschlag, der sie erfüllt und der Ankunftsuhrzeit am nächsten kommt, damit niemand am Ziel wartet. Bei einer Route mit Aufbruch zählt die früheste Ankunft.
 _Avoid_: brauchbar, pünktlich, verfügbar
 
 **passt nicht**:

@@ -1,4 +1,4 @@
-import { checkRoute, chooseConnection, clearConnection } from "@/app/routes/actions";
+import { checkRoute, chooseConnection, clearConnection, leaveRoute } from "@/app/routes/actions";
 import { StatusPill, TripProgress } from "@/components/trip-progress";
 import { Button } from "@/components/ui/button";
 import type { CheckResult, LegView, Suggestion } from "@/lib/check";
@@ -9,6 +9,9 @@ import {
   clockLabel,
   connectionSummary,
   delayLabel,
+  failedLabel,
+  ageLabel,
+  leftAtLabel,
   serviceDayLabel,
   transferGapMinutes,
 } from "@/lib/check-copy";
@@ -107,6 +110,8 @@ export function RouteCheck({
   chosenToken,
   saveFailed,
   now,
+  leave = false,
+  leftAt = null,
 }: {
   language: Language;
   routeId: string;
@@ -114,6 +119,8 @@ export function RouteCheck({
   chosenToken: string | null;
   saveFailed: boolean;
   now?: string;
+  leave?: boolean;
+  leftAt?: string | null;
 }) {
   const text = checkCopy(language);
   const trip = check
@@ -135,13 +142,27 @@ export function RouteCheck({
           {check ? (
             <StatusPill language={language} status={check.status} large />
           ) : (
-            <p className="text-sm text-muted-foreground">{text.notChecked}</p>
+            <p className="text-sm text-muted-foreground">{leave ? text.notLeft : text.notChecked}</p>
           )}
-          <form action={checkRoute}>
-            <input type="hidden" name="id" value={routeId} />
-            <Button type="submit">{text.check}</Button>
-          </form>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {leave ? (
+              <form action={leaveRoute}>
+                <input type="hidden" name="id" value={routeId} />
+                <Button type="submit" variant={leftAt ? "outline" : "default"}>
+                  {text.leave}
+                </Button>
+              </form>
+            ) : null}
+            {!leave || leftAt ? (
+              <form action={checkRoute}>
+                <input type="hidden" name="id" value={routeId} />
+                <Button type="submit">{text.check}</Button>
+              </form>
+            ) : null}
+          </div>
         </div>
+
+        {leave && leftAt ? <p className="text-sm font-medium tabular-nums">{leftAtLabel(language, leftAt)}</p> : null}
 
         {saveFailed ? (
           <p role="alert" className="rounded-xl border border-miss/30 bg-miss/10 p-3 text-sm text-miss">
@@ -166,7 +187,13 @@ export function RouteCheck({
                 </p>
               ) : null}
               <p className="tabular-nums">{checkedAtLabel(language, check.checkedAt)}</p>
+              {now ? <p className="tabular-nums">{ageLabel(language, check.checkedAt, new Date(now))}</p> : null}
             </div>
+            {check.failedAt ? (
+              <p role="status" className="rounded-xl border border-unclear/30 bg-unclear/10 p-3 text-sm text-unclear">
+                {failedLabel(language, check.failedAt)}
+              </p>
+            ) : null}
             {chosenToken ? (
               <form action={clearConnection}>
                 <input type="hidden" name="id" value={routeId} />

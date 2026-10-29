@@ -68,6 +68,7 @@ export type CheckResult = {
   noAlternative: boolean;
   searched: boolean;
   searchFromName: string | null;
+  failedAt?: string | null;
 };
 
 export type TravelPosition =
@@ -87,6 +88,7 @@ export type RouteToCheck = {
   lineName: string | null;
   todayRefreshToken: string | null;
   todayServiceDate: string | null;
+  leftAt?: string | null;
 };
 
 export type JourneyPage = {
@@ -96,7 +98,12 @@ export type JourneyPage = {
 };
 
 export type Auskunft = {
-  journeys: (from: string, to: string, arrival: Date) => Promise<JourneyPage>;
+  journeys: (
+    from: string,
+    to: string,
+    at: Date,
+    direction?: "arrival" | "departure",
+  ) => Promise<JourneyPage>;
   earlier?: (from: string, to: string, earlierRef: string) => Promise<JourneyPage>;
   refreshJourney: (
     refreshToken: string,
@@ -260,9 +267,11 @@ function rideLegs(suggestion: Suggestion) {
 function problemOf(suggestion: Suggestion, route: RouteToCheck, serviceDate: string): CheckReason | null {
   if (suggestion.legs.some((leg) => leg.cancelled)) return "cancelled";
 
-  const arrival = suggestion.legs[suggestion.legs.length - 1]?.arrival;
-  const deadline = berlinInstant(serviceDate, route.arrival).getTime();
-  if (!arrival || new Date(arrival).getTime() > deadline) return "arrival";
+  if (route.arrival) {
+    const arrival = suggestion.legs[suggestion.legs.length - 1]?.arrival;
+    const deadline = berlinInstant(serviceDate, route.arrival).getTime();
+    if (!arrival || new Date(arrival).getTime() > deadline) return "arrival";
+  }
 
   const rides = rideLegs(suggestion);
   if (route.transferMinutes != null) {
@@ -422,8 +431,21 @@ async function withAlternative(
   };
 }
 
+function afterLeaveSearch(judged: CheckResult, chosen: string | null): CheckResult {
+  if (judged.status === "doesnt-fit") return { ...judged, noAlternative: Boolean(chosen) };
+  const next = judged.connection;
+  if (chosen && judged.status === "fits" && next && next.refreshToken !== chosen) {
+    return { ...judged, alternative: next };
+  }
+  return judged;
+}
+
 function keptStand(previous: CheckResult): CheckResult {
   return { ...previous, searched: false };
+}
+
+function isFailure(result: CheckResult) {
+  return result.status === "unclear" && (result.reason === "no-answer" || result.reason === "stale");
 }
 
 export async function runCheck(
@@ -432,8 +454,26 @@ export async function runCheck(
   auskunft: Auskunft,
   previous: CheckResult | null = null,
 ): Promise<CheckResult> {
-  const serviceDate = searchDay(route.weekdays, route.arrival, now);
+  const result = await judgeRoute(route, now, auskunft, previous);
+  if (!isFailure(result)) return { ...result, failedAt: null };
+
+  const kept = previous?.serviceDate === result.serviceDate && !isFailure(previous) ? previous : null;
+  if (!kept) return result;
+  return { ...kept, searched: true, failedAt: now.toISOString() };
+}
+
+async function judgeRoute(
+  route: RouteToCheck,
+  now: Date,
+  auskunft: Auskunft,
+  previous: CheckResult | null,
+): Promise<CheckResult> {
+  const leave = !route.arrival;
+  const serviceDate = leave ? berlinDateString(now) : searchDay(route.weekdays, route.arrival, now);
   const checkedAt = now.toISOString();
+  if (leave && !(route.leftAt && berlinDateString(new Date(route.leftAt)) === serviceDate)) {
+    return { ...unanswered(serviceDate, checkedAt), reason: null, searched: false };
+  }
   const chosen =
     route.todayRefreshToken && route.todayServiceDate === serviceDate ? route.todayRefreshToken : null;
   const sameDay = previous?.serviceDate === serviceDate ? previous : null;
@@ -454,15 +494,20 @@ export async function runCheck(
     const position = located ? travelPosition(located, now) : { kind: "before" as const };
     if (position.kind === "done" && sameDay) return keptStand(sameDay);
     if (chosen && refreshed && position.kind === "before") {
-      return judge([refreshed], realtime, route, serviceDate, now, checkedAt);
+      const judgedChosen = judge([refreshed], realtime, route, serviceDate, now, checkedAt);
+      if (!leave || judgedChosen.status !== "doesnt-fit") return judgedChosen;
     }
 
     const moved = position.kind === "next-stop" || position.kind === "transfer";
     const fromId = moved ? position.id : route.startId;
     const fromName = moved ? position.name : null;
-    const found = await auskunft.journeys(fromId, route.destinationId, berlinInstant(serviceDate, route.arrival));
+    const found = leave
+      ? await auskunft.journeys(fromId, route.destinationId, now, "departure")
+      : await auskunft.journeys(fromId, route.destinationId, berlinInstant(serviceDate, route.arrival));
     const judged = judge(found.journeys, found.realtimeDataUpdatedAt, route, serviceDate, now, checkedAt);
-    const checked = await withAlternative(route, now, auskunft, judged, fromId, found.earlierRef);
+    const checked = leave
+      ? afterLeaveSearch(judged, chosen)
+      : await withAlternative(route, now, auskunft, judged, fromId, found.earlierRef);
     const connection = moved && located ? located : checked.connection;
     return { ...checked, connection, searched: true, searchFromName: fromName };
   } catch {
@@ -483,6 +528,7 @@ export function checkRow(userId: string, routeId: string, result: CheckResult) {
     alternative: result.alternative,
     no_alternative: result.noAlternative,
     search_from_name: result.searchFromName,
+    failed_at: result.failedAt ?? null,
   };
 }
 

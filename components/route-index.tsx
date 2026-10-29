@@ -4,7 +4,7 @@ import { QuickStart } from "@/components/quick-start";
 import { StatusPill, TripProgress } from "@/components/trip-progress";
 import { Button } from "@/components/ui/button";
 import { nextRouteId, upcomingLabel, type RouteGlance } from "@/lib/moment";
-import { routeLabel, weekdayNames } from "@/lib/route";
+import { routeLabel, timingLabel, weekdayNames } from "@/lib/route";
 import type { Language } from "@/lib/preferences";
 import type { StoredRoute } from "@/lib/route";
 
@@ -94,9 +94,7 @@ export function RouteIndex({
                     {routeLabel(route)}
                   </Link>
                   <p className="flex flex-wrap gap-x-1.5 text-sm text-muted-foreground tabular-nums">
-                    <span>
-                      {text.arrival} {route.arrival}
-                    </span>
+                    <span>{timingLabel(language, route)}</span>
                     <span aria-hidden>·</span>
                     <span>{weekdayNames(language, route.weekdays)}</span>
                     {route.lineName ? (
@@ -126,7 +124,10 @@ export function RouteIndex({
           );
         })}
       </ul>
-      <QuickStart language={language} routes={today} />
+      <QuickStart
+        language={language}
+        routes={today.map((route) => ({ ...route, leave: !route.arrival }))}
+      />
     </div>
   );
 }

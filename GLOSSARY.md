@@ -68,6 +68,10 @@ _Avoid_: nicht beurteilbar, unbekannt
 Eine Abweichung vom Fahrplan auf einer Fahrt oder an einem Ort: Verspätung, Ausfall, anderes Gleis, entfallener Halt, gesperrte Haltestelle.
 _Avoid_: Alert, Meldung
 
+**Aufbruch**:
+Der Moment, in dem eine Person per Knopf meldet, dass sie jetzt losgeht. Eine Route mit Aufbruch hat keine Ankunftsuhrzeit. Die Suche beginnt mit der Abfahrt ab diesem Moment und gilt nur für diesen Tag.
+_Avoid_: Start, Abfahrt, Check-in
+
 **Alternative**:
 Eine weitere Verbindung zur selben Ankunftsuhrzeit, nach den schon gesehenen Vorschlägen, die die Vorgabe erfüllt. Sie wird die heutige Verbindung.
 _Avoid_: zweiter Vorschlag, Ausweichroute

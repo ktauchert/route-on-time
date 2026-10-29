@@ -8,6 +8,7 @@ Geprüft am 27. Oktober 2026 gegen die öffentlichen Angaben von VBB, `hafas-cli
 - [Umsetzungsplan](./umsetzungsplan.md) — ein Durchgang baut eine Phase
 - [MCP](./mcp.md) — welche Server beim Bau helfen
 - [Machbarkeit](./machbarkeit.md) — was an der Voranalyse stimmt, wo sie bricht, was eine ausprobierbare PWA zusätzlich braucht
+- [API-Nutzung](./api-nutzung.md) — Kosten, Limits, Nutzerzahl, Speichern; wie viele Anfragen die App macht; Fragen an den VBB
 - [Oberfläche](./oberflaeche.md) — Mobil, Desktop, Hell, Dunkel, Schnellstart
 - [Prototyp](./prototyp.md) — Zuschnitt des ersten Stands
 - [Offene Fragen](./offene-fragen.md) — Entscheidungen, die noch beim Nutzer liegen

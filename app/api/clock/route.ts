@@ -22,6 +22,7 @@ function checkFromRow(row: {
   alternative: unknown;
   no_alternative: boolean | null;
   search_from_name: string | null;
+  failed_at: string | null;
 }): CheckResult | null {
   if (!statuses.includes(row.status as CheckStatus)) return null;
   return {
@@ -35,6 +36,7 @@ function checkFromRow(row: {
     noAlternative: Boolean(row.no_alternative),
     searched: true,
     searchFromName: row.search_from_name,
+    failedAt: row.failed_at,
   };
 }
 
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
   const routes = await admin
     .from("routes")
     .select(
-      "id, user_id, start_id, destination_id, arrival, weekdays, transfer_minutes, max_transfers, line_id, line_name, today_refresh_token, today_service_date",
+      "id, user_id, start_id, destination_id, arrival, weekdays, transfer_minutes, max_transfers, line_id, line_name, today_refresh_token, today_service_date, left_at",
     );
   if (routes.error || !routes.data) return Response.json({ error: "unavailable" }, { status: 500 });
 
@@ -65,7 +67,7 @@ export async function POST(request: Request) {
   const checks = await admin
     .from("route_checks")
     .select(
-      "route_id, service_date, status, reason, checked_at, connection, suggestions, alternative, no_alternative, search_from_name",
+      "route_id, service_date, status, reason, checked_at, connection, suggestions, alternative, no_alternative, search_from_name, failed_at",
     )
     .order("checked_at", { ascending: false });
   if (checks.error) return Response.json({ error: "unavailable" }, { status: 500 });
@@ -85,7 +87,7 @@ export async function POST(request: Request) {
     route: {
       startId: row.start_id,
       destinationId: row.destination_id,
-      arrival: String(row.arrival).slice(0, 5),
+      arrival: row.arrival ? String(row.arrival).slice(0, 5) : "",
       weekdays: row.weekdays as Weekday[],
       transferMinutes: row.transfer_minutes,
       maxTransfers: row.max_transfers,
@@ -93,6 +95,7 @@ export async function POST(request: Request) {
       lineName: row.line_name,
       todayRefreshToken: row.today_refresh_token,
       todayServiceDate: row.today_service_date,
+      leftAt: row.left_at,
     },
   }));
 

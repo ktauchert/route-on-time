@@ -73,7 +73,52 @@ const route: StoredRoute = {
   lineName: null,
   todayRefreshToken: null,
   todayServiceDate: null,
+  leftAt: null,
 };
+
+describe("RouteIndex for a leave route", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("names the leave button where the arrival would be", () => {
+    render(
+      <RouteIndex
+        language="de"
+        routes={[{ ...route, arrival: "" }]}
+        today={[]}
+        missingTable={false}
+        glances={{}}
+      />,
+    );
+
+    expect(screen.getByText("Aufbruch per Knopf")).toBeTruthy();
+    expect(screen.queryByText(/Ankunft/)).toBeNull();
+  });
+});
+
+describe("QuickStart for a leave route", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("offers leaving instead of a plain check", () => {
+    render(
+      <QuickStart
+        language="de"
+        routes={[
+          { id: "1", name: null, startName: "Büro", destinationName: "Zuhause", weekdays: ["mon"], leave: true },
+          { id: "2", name: null, startName: "Alex", destinationName: "Zoo", weekdays: ["mon"] },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Schnellstart" }));
+
+    expect(screen.getByRole("button", { name: "Ich verlasse das Büro · Büro → Zuhause" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Alex → Zoo" })).toBeTruthy();
+  });
+});
 
 describe("RouteIndex", () => {
   afterEach(() => {
@@ -151,6 +196,30 @@ describe("RouteForm", () => {
     );
     expect(screen.getByRole("button", { name: "Löschen" }).getAttribute("data-variant")).toBe("ghost");
     expect(screen.getByRole("button", { name: "Speichern" }).getAttribute("data-variant")).toBe("default");
+  });
+
+  it("asks for an arrival time by default", () => {
+    render(<RouteForm language="de" route={null} failed={false} />);
+
+    expect(screen.getByRole("radio", { name: "Ankunft bis" })).toHaveProperty("checked", true);
+    expect(document.querySelector("input[name=arrival]")).toBeTruthy();
+  });
+
+  it("drops the arrival time when the route starts with the leave button", () => {
+    render(<RouteForm language="de" route={null} failed={false} />);
+
+    fireEvent.click(screen.getByRole("radio", { name: "Aufbruch per Knopf" }));
+
+    expect(screen.getByRole("radio", { name: "Aufbruch per Knopf" })).toHaveProperty("checked", true);
+    expect(document.querySelector("input[name=arrival]")).toBeNull();
+    expect(document.querySelector("input[name=timing]:checked")?.getAttribute("value")).toBe("leave");
+  });
+
+  it("opens a leave route with the leave choice set", () => {
+    render(<RouteForm language="de" route={{ ...route, arrival: "" }} failed={false} />);
+
+    expect(screen.getByRole("radio", { name: "Aufbruch per Knopf" })).toHaveProperty("checked", true);
+    expect(document.querySelector("input[name=arrival]")).toBeNull();
   });
 
   it("groups the form into route, requirement and weekdays", () => {

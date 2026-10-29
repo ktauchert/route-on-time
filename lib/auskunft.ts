@@ -9,12 +9,11 @@ export function hafasClient() {
   return createVbbHafas(userAgent);
 }
 
-export function liveAuskunft(): Auskunft {
-  const client = hafasClient();
+export function liveAuskunft(client: ReturnType<typeof hafasClient> = hafasClient()): Auskunft {
   return {
-    async journeys(from, to, arrival) {
+    async journeys(from, to, at, direction = "arrival") {
       const result = await client.journeys(from, to, {
-        arrival,
+        ...(direction === "departure" ? { departure: at } : { arrival: at }),
         results: 5,
         language: "de",
         stopovers: true,

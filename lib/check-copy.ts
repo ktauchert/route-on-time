@@ -16,6 +16,8 @@ const copy = {
       stale: "Die Echtzeit ist älter als 15 Minuten.",
     },
     check: "Jetzt prüfen",
+    leave: "Ich verlasse das Büro",
+    notLeft: "Noch nicht aufgebrochen.",
     choose: "Als heutige Verbindung",
     chosen: "Heutige Verbindung",
     clear: "Wahl aufheben",
@@ -42,6 +44,8 @@ const copy = {
       stale: "Realtime data is older than 15 minutes.",
     },
     check: "Check now",
+    leave: "I'm leaving the office",
+    notLeft: "Not left yet.",
     choose: "Use as today's connection",
     chosen: "Today's connection",
     clear: "Clear choice",
@@ -84,6 +88,11 @@ export function checkedAtLabel(language: Language, checkedAt: string) {
     timeZone: "Europe/Berlin",
   }).format(new Date(checkedAt));
   return language === "de" ? `Geprüft um ${time}` : `Checked at ${time}`;
+}
+
+export function leftAtLabel(language: Language, leftAt: string) {
+  const time = clockLabel(leftAt);
+  return language === "de" ? `Aufbruch um ${time}` : `Left at ${time}`;
 }
 
 export function ageLabel(language: Language, checkedAt: string, now: Date) {

@@ -33,15 +33,20 @@
 12. Statt einer Alternative bis zu drei, mit den Folgen (spätere Ankunft, mehr Umstiege).
 13. Gibt es keine, die passt, steht die nächstbeste Verbindung mit ihrer Ankunft da, auch wenn sie die Vorgabe reißt.
 
-### E. „Ich verlasse das Büro“ (Folgeschritt, Entscheidung offen)
+### E. „Ich verlasse das Büro“
 
-14. Ein Knopf meldet den Aufbruch. Die Prüfung sucht ab diesem Moment. Siehe [offene Fragen](../offene-fragen.md), Frage 7.
+14. Eine Route hat entweder eine Ankunftsuhrzeit oder den Aufbruch per Knopf. Im Formular gibt es dafür eine Wahl.
+15. Der Knopf „Ich verlasse das Büro“ steht auf der Route und im Schnellstart. Er speichert den Moment, sucht ab dann die nächsten Abfahrten und macht die erste, die passt, zur heutigen Verbindung.
+16. Die Vorgabe prüft Umstiegszeit, Höchstzahl der Umstiege und Linie, nicht die Ankunft. Fällt die gewählte Fahrt aus, sucht die nächste Prüfung neu und die nächste passende wird die Alternative.
+17. Vor dem Tippen prüft weder die App noch die Uhr diese Route. Ein Tippen von gestern gilt nicht.
 
-### F. Eine Ankunftsuhrzeit pro Wochentag (Folgeschritt, Entscheidung offen)
+Entscheidung dazu: [offene Fragen](../offene-fragen.md), Frage 7. Nicht hier: schnellste oder ruhigste Route, Weg zur Haltestelle.
 
-15. Freitags fährt die Tour früher. Siehe [offene Fragen](../offene-fragen.md), Frage 8.
+### F. Eine Ankunftsuhrzeit pro Wochentag
 
-D bis F ändern Vorgabe, Fälligkeit oder Datenmodell und sind erst nach der Entscheidung zu bauen. A bis C sind ohne offene Frage.
+Entfällt. Wer freitags früher fährt, legt eine eigene Route für Freitag an. Siehe [offene Fragen](../offene-fragen.md), Frage 8.
+
+D ändert Texte und Alternativen und ist noch nicht gebaut. Es braucht echte Ausfall-Antworten der Auskunft.
 
 ## Fertig, wenn
 
@@ -53,6 +58,7 @@ D bis F ändern Vorgabe, Fälligkeit oder Datenmodell und sind erst nach der Ent
 - Das Öffnen einer Route im Zeitfenster mit altem Stand löst eine Prüfung aus. Mit frischem Stand, außerhalb des Fensters oder an einem ausgelassenen Wochentag löst es keine aus.
 - Bei verdeckter Seite läuft keine Prüfung. Beim Zurückkehren mit altem Stand eine.
 - Eine fehlgeschlagene Prüfung lässt den letzten guten Stand desselben Tages stehen und zeigt, dass sie fehlschlug.
+- Eine Route mit Aufbruch sucht erst nach dem Tippen, mit den Abfahrten ab diesem Moment, und prüft danach wie jede andere.
 
 ## Anmerkungen
 

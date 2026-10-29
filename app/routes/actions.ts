@@ -56,11 +56,13 @@ export async function saveRoute(formData: FormData) {
   const user = await currentUser();
   if (!user) redirect("/sign-in");
 
+  const leave = String(formData.get("timing") ?? "") === "leave";
   const draft = {
     startId: String(formData.get("startId") ?? ""),
     destinationId: String(formData.get("destinationId") ?? ""),
-    arrival: String(formData.get("arrival") ?? ""),
+    arrival: leave ? "" : String(formData.get("arrival") ?? ""),
     weekdays: weekdaysFrom(formData),
+    leave,
   };
   const id = String(formData.get("id") ?? "");
   const back = id ? `/routes/${id}?error=1` : "/routes/new?error=1";
@@ -98,7 +100,7 @@ export async function saveRoute(formData: FormData) {
     start_name: String(formData.get("startName") ?? ""),
     destination_id: draft.destinationId,
     destination_name: String(formData.get("destinationName") ?? ""),
-    arrival: draft.arrival,
+    arrival: leave ? null : draft.arrival,
     weekdays: draft.weekdays,
     transfer_minutes: transfer ? Number(transfer) : null,
     max_transfers: transfers ? Number(transfers) : null,
@@ -132,7 +134,7 @@ export async function listRoutes(): Promise<{ routes: StoredRoute[]; missingTabl
   const { data, error } = await supabase
     .from("routes")
     .select(
-      "id, name, start_id, start_name, destination_id, destination_name, arrival, weekdays, transfer_minutes, max_transfers, line_id, line_name, today_refresh_token, today_service_date",
+      "id, name, start_id, start_name, destination_id, destination_name, arrival, weekdays, transfer_minutes, max_transfers, line_id, line_name, today_refresh_token, today_service_date, left_at",
     )
     .order("created_at", { ascending: false });
 
@@ -147,7 +149,7 @@ export async function listRoutes(): Promise<{ routes: StoredRoute[]; missingTabl
       startName: row.start_name,
       destinationId: row.destination_id,
       destinationName: row.destination_name,
-      arrival: String(row.arrival).slice(0, 5),
+      arrival: row.arrival ? String(row.arrival).slice(0, 5) : "",
       weekdays: row.weekdays,
       transferMinutes: row.transfer_minutes,
       maxTransfers: row.max_transfers,
@@ -155,6 +157,7 @@ export async function listRoutes(): Promise<{ routes: StoredRoute[]; missingTabl
       lineName: row.line_name,
       todayRefreshToken: row.today_refresh_token,
       todayServiceDate: row.today_service_date,
+      leftAt: row.left_at,
     })),
   };
 }
@@ -208,6 +211,7 @@ function routeToCheck(route: StoredRoute) {
     lineName: route.lineName,
     todayRefreshToken: route.todayRefreshToken,
     todayServiceDate: route.todayServiceDate,
+    leftAt: route.leftAt,
   };
 }
 
@@ -238,6 +242,41 @@ export async function checkRoute(formData: FormData) {
   const saved = await saveCheck(user.id, id, result);
   const today = todayFromCheck(result);
   const remembered = today ? await rememberToday(id, today.refreshToken, today.serviceDate) : true;
+  redirect(saved && remembered ? `/routes/${id}` : `/routes/${id}?error=check`);
+}
+
+export async function leaveRoute(formData: FormData) {
+  const user = await currentUser();
+  if (!user) redirect("/sign-in");
+
+  const id = String(formData.get("id") ?? "");
+  const { routes } = await listRoutes();
+  const route = routes.find((item) => item.id === id);
+  if (!route) redirect("/routes");
+
+  const supabase = await createClient();
+  if (!supabase) redirect(`/routes/${id}`);
+
+  const now = new Date();
+  const leftAt = now.toISOString();
+  const left = await supabase
+    .from("routes")
+    .update({ left_at: leftAt, today_refresh_token: null, today_service_date: null })
+    .eq("id", id);
+  if (left.error) redirect(`/routes/${id}?error=check`);
+
+  const previous = await latestCheck(id);
+  const result = await runCheck(
+    { ...routeToCheck(route), leftAt, todayRefreshToken: null, todayServiceDate: null },
+    now,
+    liveAuskunft(),
+    previous,
+  );
+  if (!result.searched) redirect(`/routes/${id}`);
+
+  const saved = await saveCheck(user.id, id, result);
+  const first = result.status === "fits" ? result.connection?.refreshToken : null;
+  const remembered = first ? await rememberToday(id, first, result.serviceDate) : true;
   redirect(saved && remembered ? `/routes/${id}` : `/routes/${id}?error=check`);
 }
 

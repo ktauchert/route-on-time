@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { checkRoute } from "@/app/routes/actions";
+import { checkRoute, leaveRoute } from "@/app/routes/actions";
 import { Button } from "@/components/ui/button";
 import { routeLabel } from "@/lib/route";
 import type { Language } from "@/lib/preferences";
@@ -12,11 +12,12 @@ export function QuickStart({
   routes,
 }: {
   language: Language;
-  routes: Array<{ id: string; name: string | null; startName: string; destinationName: string; weekdays: string[] }>;
+  routes: Array<{ id: string; name: string | null; startName: string; destinationName: string; weekdays: string[]; leave?: boolean }>;
 }) {
   const [open, setOpen] = useState(false);
   const label = language === "en" ? "Quick start" : "Schnellstart";
   const create = language === "en" ? "New route" : "Neue Route";
+  const leaveLabel = language === "en" ? "I'm leaving the office" : "Ich verlasse das Büro";
 
   return (
     <div className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-20 flex flex-col items-end md:hidden">
@@ -27,9 +28,10 @@ export function QuickStart({
             {create}
           </Link>
           {routes.map((route) => (
-            <form key={route.id} action={checkRoute}>
+            <form key={route.id} action={route.leave ? leaveRoute : checkRoute}>
               <input type="hidden" name="id" value={route.id} />
               <Button type="submit" variant="ghost" className="w-full justify-start">
+                {route.leave ? `${leaveLabel} · ` : ""}
                 {routeLabel(route)}
               </Button>
             </form>

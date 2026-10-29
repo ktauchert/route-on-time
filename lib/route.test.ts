@@ -5,6 +5,7 @@ import {
   findPlaces,
   routeLabel,
   routeProblems,
+  timingLabel,
   storedRouteName,
   weekdayNames,
 } from "./route";
@@ -44,6 +45,20 @@ describe("routeProblems", () => {
         weekdays: ["mon"],
       }),
     ).toEqual([]);
+  });
+});
+
+describe("routeProblems for a route that starts with the leave button", () => {
+  it("needs no arrival time", () => {
+    expect(
+      routeProblems({ startId: "a", destinationId: "b", arrival: "", weekdays: ["mon"], leave: true }),
+    ).toEqual([]);
+  });
+
+  it("still needs two different stops and a weekday", () => {
+    expect(
+      routeProblems({ startId: "a", destinationId: "a", arrival: "", weekdays: [], leave: true }),
+    ).toEqual(["same-stop", "weekdays"]);
   });
 });
 
@@ -132,5 +147,17 @@ describe("weekdayNames", () => {
     expect(weekdayNames("de", ["mon", "tue", "wed", "thu", "fri"])).toBe("Mo–Fr");
     expect(weekdayNames("en", ["mon", "tue", "wed", "thu", "fri", "sat", "sun"])).toBe("Every day");
     expect(weekdayNames("de", ["mon", "tue", "wed", "thu", "fri", "sat", "sun"])).toBe("Täglich");
+  });
+});
+
+describe("timingLabel", () => {
+  it("names the arrival of an arrival route", () => {
+    expect(timingLabel("de", { arrival: "09:00" })).toBe("Ankunft 09:00");
+    expect(timingLabel("en", { arrival: "09:00" })).toBe("Arrival 09:00");
+  });
+
+  it("names the button for a route without an arrival", () => {
+    expect(timingLabel("de", { arrival: "" })).toBe("Aufbruch per Knopf");
+    expect(timingLabel("en", { arrival: "" })).toBe("Leaves by button");
   });
 });

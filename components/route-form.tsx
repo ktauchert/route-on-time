@@ -34,6 +34,7 @@ export function RouteForm({
     route?.lineId && route.lineName ? { id: route.lineId, name: route.lineName } : null,
   );
   const [days, setDays] = useState<Weekday[]>(route?.weekdays ?? [...defaultWeekdays]);
+  const [timing, setTiming] = useState<"arrival" | "leave">(route && !route.arrival ? "leave" : "arrival");
 
   async function loadLines() {
     if (!start) return;
@@ -74,7 +75,7 @@ export function RouteForm({
       {failed ? (
         <p role="alert" className="rounded-xl border border-miss/30 bg-miss/10 p-3 text-sm text-miss">
           {isGerman
-            ? "Start und Ziel müssen zwei verschiedene Haltestellen sein, mit Ankunft und mindestens einem Wochentag."
+            ? "Start und Ziel müssen zwei verschiedene Haltestellen sein, mit Ankunft oder Aufbruch per Knopf und mindestens einem Wochentag."
             : "Start and destination must be two different stops, with an arrival and at least one weekday."}
         </p>
       ) : null}
@@ -114,11 +115,29 @@ export function RouteForm({
 
       <fieldset className={section}>
         <legend className={legend}>{isGerman ? "Vorgabe" : "Requirement"}</legend>
+        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          {(["arrival", "leave"] as const).map((kind) => (
+            <label key={kind} className="flex items-center gap-2 font-medium">
+              <input
+                type="radio"
+                name="timing"
+                value={kind}
+                checked={timing === kind}
+                onChange={() => setTiming(kind)}
+              />
+              {kind === "arrival"
+                ? isGerman ? "Ankunft bis" : "Arrive by"
+                : isGerman ? "Aufbruch per Knopf" : "Leaves by button"}
+            </label>
+          ))}
+        </div>
         <div className="grid gap-4 sm:grid-cols-3 sm:items-end">
-          <label className={field}>
-            {isGerman ? "Ankunft" : "Arrival"}
-            <Input name="arrival" type="time" required defaultValue={route?.arrival ?? "09:00"} />
-          </label>
+          {timing === "arrival" ? (
+            <label className={field}>
+              {isGerman ? "Ankunft" : "Arrival"}
+              <Input name="arrival" type="time" required defaultValue={route?.arrival || "09:00"} />
+            </label>
+          ) : null}
           <label className={field}>
             {isGerman ? "Minuten zum Umsteigen" : "Minutes to transfer"}
             <Input

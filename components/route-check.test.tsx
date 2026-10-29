@@ -87,6 +87,42 @@ describe("RouteCheck", () => {
     expect(screen.getByText("S7")).toBeTruthy();
   });
 
+  it("leads with the leave button for a route that was not left yet", () => {
+    render(
+      <RouteCheck language="de" routeId="1" check={null} chosenToken={null} saveFailed={false} leave leftAt={null} />,
+    );
+
+    expect(screen.getByRole("button", { name: "Ich verlasse das Büro" }).getAttribute("data-variant")).toBe("default");
+    expect(screen.queryByRole("button", { name: "Jetzt prüfen" })).toBeNull();
+    expect(screen.getByText("Noch nicht aufgebrochen.")).toBeTruthy();
+  });
+
+  it("shows when the person left and keeps the check button once they did", () => {
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={fitting}
+        chosenToken={null}
+        saveFailed={false}
+        leave
+        leftAt="2026-10-26T16:12:00.000Z"
+      />,
+    );
+
+    expect(screen.getByText("Aufbruch um 17:12")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Jetzt prüfen" }).getAttribute("data-variant")).toBe("default");
+    expect(screen.getByRole("button", { name: "Ich verlasse das Büro" }).getAttribute("data-variant")).toBe("outline");
+  });
+
+  it("has no leave button on an arrival route", () => {
+    render(
+      <RouteCheck language="de" routeId="1" check={fitting} chosenToken={null} saveFailed={false} />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Ich verlasse das Büro" })).toBeNull();
+  });
+
   it("shows how old the stand is when the time is known", () => {
     render(
       <RouteCheck

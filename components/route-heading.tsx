@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { routeLabel, weekdayNames, type StoredRoute } from "@/lib/route";
+import { routeLabel, timingLabel, weekdayNames, type StoredRoute } from "@/lib/route";
 import type { Language } from "@/lib/preferences";
 
 export function RouteHeading({ language, route }: { language: Language; route: StoredRoute | null }) {
@@ -15,7 +15,7 @@ export function RouteHeading({ language, route }: { language: Language; route: S
       </h2>
       {route ? (
         <p className="text-sm text-muted-foreground tabular-nums">
-          {route.startName} → {route.destinationName} · {isGerman ? "Ankunft" : "Arrival"} {route.arrival} ·{" "}
+          {route.startName} → {route.destinationName} · {timingLabel(language, route)} ·{" "}
           {weekdayNames(language, route.weekdays)}
         </p>
       ) : null}

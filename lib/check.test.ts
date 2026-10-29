@@ -997,3 +997,161 @@ describe("a failed check keeps the last good stand", () => {
     expect(checkRow("user-1", "route-1", before).failed_at).toBeNull();
   });
 });
+
+describe("a route that starts with the leave button", () => {
+  const left = new Date("2026-10-26T17:12:00+01:00");
+
+  function leaving(overrides: Record<string, unknown> = {}) {
+    return route({ arrival: "", leftAt: left.toISOString(), ...overrides });
+  }
+
+  function departing(token: string, departure: string, arrival: string, extra: Record<string, unknown> = {}) {
+    return journey(token, [ride({ departure, arrival, ...extra })]);
+  }
+
+  function seeing(pages: RawJourney[][]) {
+    const asked: Array<{ at: Date; direction: string | undefined }> = [];
+    const client: Auskunft = {
+      async journeys(_from, _to, at, direction) {
+        asked.push({ at, direction });
+        return { journeys: pages.shift() ?? [], realtimeDataUpdatedAt: null };
+      },
+      async refreshJourney() {
+        return { journey: null, realtimeDataUpdatedAt: null };
+      },
+    };
+    return { client, asked };
+  }
+
+  it("does not search before the person has left today", async () => {
+    const { client, asked } = seeing([[onTime()]]);
+
+    const result = await runCheck(route({ arrival: "", leftAt: null }), left, client);
+
+    expect(asked).toEqual([]);
+    expect(result.searched).toBe(false);
+  });
+
+  it("does not search on a leave from another day", async () => {
+    const { client, asked } = seeing([[onTime()]]);
+
+    const result = await runCheck(
+      route({ arrival: "", leftAt: "2026-10-23T17:10:00+02:00" }),
+      left,
+      client,
+    );
+
+    expect(asked).toEqual([]);
+    expect(result.searched).toBe(false);
+  });
+
+  it("searches departures from now and calls the first usable one fitting", async () => {
+    const { client, asked } = seeing([
+      [departing("first", "2026-10-26T17:20:00+01:00", "2026-10-26T18:10:00+01:00")],
+    ]);
+
+    const result = await runCheck(leaving(), left, client);
+
+    expect(asked).toEqual([{ at: left, direction: "departure" }]);
+    expect(result.serviceDate).toBe("2026-10-26");
+    expect(result.status).toBe("fits");
+    expect(result.reason).toBeNull();
+    expect(result.connection?.refreshToken).toBe("first");
+  });
+
+  it("does not judge the arrival, whatever the hour", async () => {
+    const { client } = seeing([
+      [departing("late", "2026-10-26T22:00:00+01:00", "2026-10-26T23:30:00+01:00")],
+    ]);
+
+    const result = await runCheck(leaving(), left, client);
+
+    expect(result.status).toBe("fits");
+  });
+
+  it("takes the first connection that keeps the requirement", async () => {
+    const { client } = seeing([
+      [
+        departing("cancelled", "2026-10-26T17:20:00+01:00", "2026-10-26T18:10:00+01:00", { cancelled: true }),
+        departing("running", "2026-10-26T17:35:00+01:00", "2026-10-26T18:25:00+01:00"),
+      ],
+    ]);
+
+    const result = await runCheck(leaving(), left, client);
+
+    expect(result.status).toBe("fits");
+    expect(result.connection?.refreshToken).toBe("running");
+  });
+
+  it("says it does not fit when every connection breaks the requirement", async () => {
+    const { client } = seeing([
+      [departing("cancelled", "2026-10-26T17:20:00+01:00", "2026-10-26T18:10:00+01:00", { cancelled: true })],
+    ]);
+
+    const result = await runCheck(leaving(), left, client);
+
+    expect(result.status).toBe("doesnt-fit");
+    expect(result.reason).toBe("cancelled");
+  });
+
+  it("is unclear when the auskunft does not answer", async () => {
+    const result = await runCheck(leaving(), left, auskunft({ fail: true }));
+
+    expect(result.status).toBe("unclear");
+    expect(result.reason).toBe("no-answer");
+  });
+
+  it("reads the chosen connection again and keeps it while it runs", async () => {
+    const client = auskunft({
+      refreshed: departing("chosen", "2026-10-26T17:20:00+01:00", "2026-10-26T18:10:00+01:00"),
+    });
+
+    const result = await runCheck(
+      leaving({ todayRefreshToken: "chosen", todayServiceDate: "2026-10-26" }),
+      new Date("2026-10-26T17:14:00+01:00"),
+      client,
+    );
+
+    expect(client.calls).toEqual(["refresh"]);
+    expect(result.status).toBe("fits");
+    expect(result.connection?.refreshToken).toBe("chosen");
+  });
+
+  it("searches again when the chosen connection is cancelled and offers the next one as the alternative", async () => {
+    const { client } = seeing([
+      [departing("next", "2026-10-26T17:40:00+01:00", "2026-10-26T18:30:00+01:00")],
+    ]);
+    client.refreshJourney = async () => ({
+      journey: departing("chosen", "2026-10-26T17:20:00+01:00", "2026-10-26T18:10:00+01:00", { cancelled: true }),
+      realtimeDataUpdatedAt: null,
+    });
+
+    const result = await runCheck(
+      leaving({ todayRefreshToken: "chosen", todayServiceDate: "2026-10-26" }),
+      new Date("2026-10-26T17:14:00+01:00"),
+      client,
+    );
+
+    expect(result.status).toBe("fits");
+    expect(result.connection?.refreshToken).toBe("next");
+    expect(result.alternative?.refreshToken).toBe("next");
+    expect(todayFromCheck(result)).toEqual({ refreshToken: "next", serviceDate: "2026-10-26" });
+  });
+
+  it("says it does not fit when the chosen connection is cancelled and nothing else runs", async () => {
+    const { client } = seeing([[]]);
+    client.refreshJourney = async () => ({
+      journey: departing("chosen", "2026-10-26T17:20:00+01:00", "2026-10-26T18:10:00+01:00", { cancelled: true }),
+      realtimeDataUpdatedAt: null,
+    });
+
+    const result = await runCheck(
+      leaving({ todayRefreshToken: "chosen", todayServiceDate: "2026-10-26" }),
+      new Date("2026-10-26T17:14:00+01:00"),
+      client,
+    );
+
+    expect(result.status).toBe("doesnt-fit");
+    expect(result.reason).toBe("empty");
+  });
+});

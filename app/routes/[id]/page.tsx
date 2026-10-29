@@ -8,6 +8,7 @@ import { RouteCheck } from "@/components/route-check";
 import { RouteHeading } from "@/components/route-heading";
 import { checkIfDue, latestCheck, listRoutes, userInterval } from "@/app/routes/actions";
 import { AutoCheck } from "@/components/auto-check";
+import { berlinDateString } from "@/lib/check";
 import { readAppearance } from "@/lib/appearance";
 import { currentUser } from "@/lib/supabase/server";
 
@@ -55,6 +56,12 @@ async function EditRoute({
           chosenToken={chosenToken}
           saveFailed={params.error === "check"}
           now={new Date().toISOString()}
+          leave={!route.arrival}
+          leftAt={
+            route.leftAt && berlinDateString(new Date(route.leftAt)) === berlinDateString(new Date())
+              ? route.leftAt
+              : null
+          }
         />
         <div className="flex flex-col gap-3 lg:sticky lg:top-24">
           <h3 className="text-base font-semibold tracking-tight">

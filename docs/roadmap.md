@@ -1,6 +1,6 @@
 # Roadmap
 
-Jede Zeile ist eine Phase. Der Durchgang liest die verlinkte Datei und baut nur diese Phase. Stand 29. Oktober 2026: Phasen 0 bis 7 sind in `main`. Phase 8 ist im Bau, Teile A bis C sind fertig, D bis F warten auf Entscheidungen.
+Jede Zeile ist eine Phase. Der Durchgang liest die verlinkte Datei und baut nur diese Phase. Stand 29. Oktober 2026: Phasen 0 bis 7 sind in `main`. Phase 8 ist im Bau, Teile A, B, C und E sind fertig, F entfällt, D (Ausfälle verständlich) ist offen.
 
 | Phase | Ergebnis | Datei | Issue |
 | --- | --- | --- | --- |

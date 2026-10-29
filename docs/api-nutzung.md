@@ -121,7 +121,7 @@ Für die Anfragen heißt das:
 - Der Abend kostet dann etwa ein Drittel der Anfragen. Gerechnet auf zwei Routen am Tag sinkt die Zahl um rund ein Drittel.
 - Die Prüfung nach dem Tippen sollte sofort laufen, nicht erst beim nächsten Takt der Uhr. Das ist eine Anfrage mehr, aber genau die, die zählt.
 
-Das ist ein Vorschlag, noch keine Entscheidung. Er ändert die Vorgabe und die Fälligkeit der Uhr. Offene Punkte stehen in [offene Fragen](./offene-fragen.md), Frage 7.
+Entschieden und gebaut: Der Knopf ersetzt die Ankunftsuhrzeit auf der Route. Siehe [offene Fragen](./offene-fragen.md), Frage 7.
 
 ## Kosten
 

@@ -35,6 +35,7 @@ export type RouteDraft = {
   destinationId: string;
   arrival: string;
   weekdays: Weekday[];
+  leave?: boolean;
 };
 
 export function routeProblems(draft: RouteDraft) {
@@ -44,7 +45,7 @@ export function routeProblems(draft: RouteDraft) {
     problems.push("same-stop");
   }
 
-  if (!draft.arrival) {
+  if (!draft.leave && !draft.arrival) {
     problems.push("arrival");
   }
 
@@ -141,7 +142,13 @@ export type StoredRoute = {
   lineName: string | null;
   todayRefreshToken: string | null;
   todayServiceDate: string | null;
+  leftAt: string | null;
 };
+
+export function timingLabel(language: Language, route: { arrival: string }) {
+  if (route.arrival) return `${language === "de" ? "Ankunft" : "Arrival"} ${route.arrival}`;
+  return language === "de" ? "Aufbruch per Knopf" : "Leaves by button";
+}
 
 export function routesForToday(routes: StoredRoute[], date = new Date()) {
   return routes.filter((route) => appliesOn(route.weekdays, date));

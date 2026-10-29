@@ -12,6 +12,7 @@ import {
 import { hafasClient, liveAuskunft } from "@/lib/auskunft";
 import { defaultIntervalMinutes, isDue } from "@/lib/clock";
 import { glanceFor, type RouteGlance } from "@/lib/moment";
+import { preferableModes } from "@/lib/mode";
 import { findPlaces, routeProblems, storedRouteName, type StoredRoute, type Weekday } from "@/lib/route";
 import { createClient, currentUser } from "@/lib/supabase/server";
 
@@ -33,19 +34,9 @@ export async function searchStops(query: string) {
   return findPlaces(results).filter((place) => place.kind === "stop");
 }
 
-export async function searchLines(stopId: string) {
-  if (!stopId) return [];
-
-  const stop = await hafas().stop(stopId, { linesOfStops: true });
-  const lines = Array.isArray(stop.lines) ? stop.lines : [];
-
-  return findPlaces(
-    lines.map((line: { id?: string; name?: string }) => ({
-      type: "line",
-      id: line.id,
-      name: line.name,
-    })),
-  );
+function preferredModeFrom(formData: FormData) {
+  const value = String(formData.get("preferredMode") ?? "");
+  return (preferableModes as readonly string[]).includes(value) ? value : null;
 }
 
 function weekdaysFrom(formData: FormData) {
@@ -104,8 +95,8 @@ export async function saveRoute(formData: FormData) {
     weekdays: draft.weekdays,
     transfer_minutes: transfer ? Number(transfer) : null,
     max_transfers: transfers ? Number(transfers) : null,
-    line_id: String(formData.get("lineId") ?? "") || null,
-    line_name: String(formData.get("lineName") ?? "") || null,
+    preferred_mode: preferredModeFrom(formData),
+    relaxed: formData.get("relaxed") === "on",
   };
 
   const result = id
@@ -113,7 +104,15 @@ export async function saveRoute(formData: FormData) {
     : await supabase.from("routes").insert(row).select("id").single();
 
   if (result.error || !result.data) redirect(back);
-  redirect(`/routes/${result.data.id}`);
+
+  const savedId = result.data.id;
+  if (formData.get("then") === "check" && !leave) {
+    const { routes } = await listRoutes();
+    const saved = routes.find((item) => item.id === savedId);
+    const outcome = saved ? await performCheck(user.id, saved) : "skipped";
+    redirect(outcome === "failed" ? `/routes/${savedId}?error=check` : `/routes/${savedId}`);
+  }
+  redirect(`/routes/${savedId}`);
 }
 
 export async function deleteRoute(formData: FormData) {
@@ -134,7 +133,7 @@ export async function listRoutes(): Promise<{ routes: StoredRoute[]; missingTabl
   const { data, error } = await supabase
     .from("routes")
     .select(
-      "id, name, start_id, start_name, destination_id, destination_name, arrival, weekdays, transfer_minutes, max_transfers, line_id, line_name, today_refresh_token, today_service_date, left_at",
+      "id, name, start_id, start_name, destination_id, destination_name, arrival, weekdays, transfer_minutes, max_transfers, preferred_mode, relaxed, today_refresh_token, today_service_date, left_at",
     )
     .order("created_at", { ascending: false });
 
@@ -153,8 +152,8 @@ export async function listRoutes(): Promise<{ routes: StoredRoute[]; missingTabl
       weekdays: row.weekdays,
       transferMinutes: row.transfer_minutes,
       maxTransfers: row.max_transfers,
-      lineId: row.line_id,
-      lineName: row.line_name,
+      preferredMode: row.preferred_mode,
+      relaxed: Boolean(row.relaxed),
       todayRefreshToken: row.today_refresh_token,
       todayServiceDate: row.today_service_date,
       leftAt: row.left_at,
@@ -207,8 +206,8 @@ function routeToCheck(route: StoredRoute) {
     weekdays: route.weekdays,
     transferMinutes: route.transferMinutes,
     maxTransfers: route.maxTransfers,
-    lineId: route.lineId,
-    lineName: route.lineName,
+    preferredMode: route.preferredMode,
+    relaxed: route.relaxed,
     todayRefreshToken: route.todayRefreshToken,
     todayServiceDate: route.todayServiceDate,
     leftAt: route.leftAt,
@@ -226,6 +225,17 @@ async function saveCheck(userId: string, routeId: string, result: CheckResult) {
   return !error;
 }
 
+async function performCheck(userId: string, route: StoredRoute): Promise<"skipped" | "saved" | "failed"> {
+  const previous = await latestCheck(route.id);
+  const result = await runCheck(routeToCheck(route), new Date(), liveAuskunft(), previous);
+  if (!result.searched) return "skipped";
+
+  const saved = await saveCheck(userId, route.id, result);
+  const today = todayFromCheck(result);
+  const remembered = today ? await rememberToday(route.id, today.refreshToken, today.serviceDate) : true;
+  return saved && remembered ? "saved" : "failed";
+}
+
 export async function checkRoute(formData: FormData) {
   const user = await currentUser();
   if (!user) redirect("/sign-in");
@@ -235,14 +245,8 @@ export async function checkRoute(formData: FormData) {
   const route = routes.find((item) => item.id === id);
   if (!route) redirect("/routes");
 
-  const previous = await latestCheck(id);
-  const result = await runCheck(routeToCheck(route), new Date(), liveAuskunft(), previous);
-  if (!result.searched) redirect(`/routes/${id}`);
-
-  const saved = await saveCheck(user.id, id, result);
-  const today = todayFromCheck(result);
-  const remembered = today ? await rememberToday(id, today.refreshToken, today.serviceDate) : true;
-  redirect(saved && remembered ? `/routes/${id}` : `/routes/${id}?error=check`);
+  const outcome = await performCheck(user.id, route);
+  redirect(outcome === "failed" ? `/routes/${id}?error=check` : `/routes/${id}`);
 }
 
 export async function leaveRoute(formData: FormData) {

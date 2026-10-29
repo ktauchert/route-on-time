@@ -1,3 +1,4 @@
+import { usesMode } from "./mode";
 import { appliesOn, type Weekday } from "./route";
 
 export type CheckStatus = "fits" | "doesnt-fit" | "unclear";
@@ -6,7 +7,6 @@ export type CheckReason =
   | "arrival"
   | "transfer"
   | "transfers"
-  | "line"
   | "cancelled"
   | "empty"
   | "no-answer"
@@ -85,8 +85,8 @@ export type RouteToCheck = {
   weekdays: readonly Weekday[];
   transferMinutes: number | null;
   maxTransfers: number | null;
-  lineId: string | null;
-  lineName: string | null;
+  preferredMode: string | null;
+  relaxed: boolean;
   todayRefreshToken: string | null;
   todayServiceDate: string | null;
   leftAt?: string | null;
@@ -290,15 +290,6 @@ function problemOf(suggestion: Suggestion, route: RouteToCheck, serviceDate: str
     return "transfers";
   }
 
-  const lineId = route.lineId?.trim() || null;
-  const lineName = route.lineName?.trim() || null;
-  if (lineId || lineName) {
-    const matches = rides.some(
-      (leg) => (lineId && leg.lineId === lineId) || (lineName && leg.lineName === lineName),
-    );
-    if (!matches) return "line";
-  }
-
   return null;
 }
 
@@ -308,6 +299,31 @@ function isStale(departure: string, realtimeUpdatedAt: number | null, now: Date)
   const departureMs = new Date(departure).getTime();
   const withinNextHour = departureMs >= now.getTime() && departureMs - now.getTime() <= hourMs;
   return withinNextHour && now.getTime() - updatedMs > staleMs;
+}
+
+const relaxedSlackMs = 20 * 60 * 1000;
+
+function endOf(suggestion: Suggestion) {
+  const arrival = suggestion.legs[suggestion.legs.length - 1]?.arrival;
+  return arrival ? new Date(arrival).getTime() : Infinity;
+}
+
+function transfersOf(suggestion: Suggestion) {
+  return Math.max(0, rideLegs(suggestion).length - 1);
+}
+
+function pickFitting(fitting: Suggestion[], route: RouteToCheck): Suggestion | undefined {
+  if (fitting.length === 0) return undefined;
+
+  const preferred = route.preferredMode
+    ? fitting.filter((suggestion) => usesMode(suggestion.legs, route.preferredMode as string))
+    : [];
+  const pool = preferred.length > 0 ? preferred : fitting;
+  if (!route.relaxed) return pool[0];
+
+  const earliest = Math.min(...pool.map(endOf));
+  const near = pool.filter((suggestion) => endOf(suggestion) <= earliest + relaxedSlackMs);
+  return near.reduce((best, next) => (transfersOf(next) < transfersOf(best) ? next : best));
 }
 
 function judge(
@@ -338,7 +354,10 @@ function judge(
     };
   }
 
-  const fitting = suggestions.find((suggestion) => problemOf(suggestion, route, serviceDate) === null);
+  const fitting = pickFitting(
+    suggestions.filter((suggestion) => problemOf(suggestion, route, serviceDate) === null),
+    route,
+  );
   const connection = fitting ?? suggestions[0];
   const departure = connection.legs[0]?.departure ?? "";
 

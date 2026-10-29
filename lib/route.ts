@@ -113,17 +113,17 @@ export function appliesOn(days: readonly Weekday[], date: Date) {
   return Boolean(weekday && days.includes(weekday));
 }
 
-export type Place = { kind: "stop" | "line"; id: string; name: string };
+export type Place = { kind: "stop"; id: string; name: string };
 
 export function findPlaces(
   results: Array<{ type?: string; id?: string; name?: string }>,
 ) {
   return results.flatMap((result): Place[] => {
-    if ((result.type !== "stop" && result.type !== "line") || !result.id || !result.name) {
+    if (result.type !== "stop" || !result.id || !result.name) {
       return [];
     }
 
-    return [{ kind: result.type, id: result.id, name: result.name }];
+    return [{ kind: "stop", id: result.id, name: result.name }];
   });
 }
 
@@ -138,8 +138,8 @@ export type StoredRoute = {
   weekdays: Weekday[];
   transferMinutes: number | null;
   maxTransfers: number | null;
-  lineId: string | null;
-  lineName: string | null;
+  preferredMode: string | null;
+  relaxed: boolean;
   todayRefreshToken: string | null;
   todayServiceDate: string | null;
   leftAt: string | null;

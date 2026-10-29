@@ -13,12 +13,24 @@ Die gespeicherte Strecke in einer Richtung, von einem Start zu einem Ziel, an be
 _Avoid_: Wache, Fahrt, Linie, Favorit, Trip, Hin- und Rückfahrt
 
 **Vorgabe**:
-Was auf dieser Route stimmen muss, damit sie passt. Eine Route setzt davon nur, was sie verlangt: Ankunft vor einer Uhrzeit, Mindestzeit beim Umstieg, Höchstzahl der Umstiege, eine bestimmte Linie, die heute gewählte Verbindung.
+Was auf dieser Route stimmen muss, damit sie passt. Eine Route setzt davon nur, was sie verlangt: Ankunft vor einer Uhrzeit, Mindestzeit beim Umstieg, Höchstzahl der Umstiege, die heute gewählte Verbindung. Dazu kommen zwei Vorlieben, die nichts ausschließen: ein bevorzugtes Verkehrsmittel und „entspannt“.
 _Avoid_: Anspruch, Präferenz, Filter
 
 **heutige Verbindung**:
 Die Verbindung, die an diesem Tag für eine Route gewählt ist und weitergelesen wird.
 _Avoid_: Trip, Fahrt
+
+**Verkehrsmittel**:
+Die Art, wie ein Abschnitt fährt: S-Bahn, U-Bahn, Tram, Bus, Regionalbahn, Fernzug, Fähre. Nicht die einzelne Linie. Jedes Verkehrsmittel hat eine Farbe: S-Bahn grün, U-Bahn blau, Tram rot, Bus violett, Regionalbahn dunkelrot, Fähre türkis, Fernzug grau.
+_Avoid_: Produkt, Modus, Bahn
+
+**bevorzugtes Verkehrsmittel**:
+Das Verkehrsmittel, das eine Route lieber nutzt. Unter den passenden Verbindungen kommt eine damit zuerst. Gibt es keine, gilt die erste passende, und die App sagt es.
+_Avoid_: Linie, Pflicht
+
+**entspannt**:
+Eine Vorliebe der Route: Unter den passenden Verbindungen, die höchstens 20 Minuten später ankommen als die früheste, gewinnt die mit den wenigsten Umstiegen.
+_Avoid_: ruhig, gemütlich
 
 **Ort**:
 Eine Haltestelle oder eine Adresse. Start und Ziel einer Route sind Orte.

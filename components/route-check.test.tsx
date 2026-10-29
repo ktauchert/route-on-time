@@ -109,6 +109,36 @@ describe("RouteCheck", () => {
     expect(chips.map((chip) => chip.getAttribute("data-mode"))).toEqual(["suburban"]);
   });
 
+  it("says when no fitting connection has the preferred mode", () => {
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={fitting}
+        chosenToken={null}
+        saveFailed={false}
+        preferredMode="regional"
+      />,
+    );
+
+    expect(screen.getByText("Keine passende Verbindung mit Regionalbahn.")).toBeTruthy();
+  });
+
+  it("stays quiet when the connection has the preferred mode", () => {
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={fitting}
+        chosenToken={null}
+        saveFailed={false}
+        preferredMode="suburban"
+      />,
+    );
+
+    expect(screen.queryByText(/Keine passende Verbindung mit/)).toBeNull();
+  });
+
   it("leads with the leave button for a route that was not left yet", () => {
     render(
       <RouteCheck language="de" routeId="1" check={null} chosenToken={null} saveFailed={false} leave leftAt={null} />,

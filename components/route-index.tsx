@@ -4,6 +4,7 @@ import { QuickStart } from "@/components/quick-start";
 import { StatusPill, TripProgress } from "@/components/trip-progress";
 import { Button } from "@/components/ui/button";
 import { nextRouteId, upcomingLabel, type RouteGlance } from "@/lib/moment";
+import { modeLabel, type Mode } from "@/lib/mode";
 import { routeLabel, timingLabel, weekdayNames } from "@/lib/route";
 import type { Language } from "@/lib/preferences";
 import type { StoredRoute } from "@/lib/route";
@@ -97,10 +98,10 @@ export function RouteIndex({
                     <span>{timingLabel(language, route)}</span>
                     <span aria-hidden>·</span>
                     <span>{weekdayNames(language, route.weekdays)}</span>
-                    {route.lineName ? (
+                    {route.preferredMode ? (
                       <>
                         <span aria-hidden>·</span>
-                        <span>{route.lineName}</span>
+                        <span>{modeLabel(language, route.preferredMode as Mode)}</span>
                       </>
                     ) : null}
                   </p>

@@ -29,8 +29,8 @@ function route(overrides: Record<string, unknown> = {}) {
     weekdays,
     transferMinutes: null,
     maxTransfers: null,
-    lineId: null,
-    lineName: null,
+    preferredMode: null,
+    relaxed: false,
     todayRefreshToken: null,
     todayServiceDate: null,
     ...overrides,
@@ -214,29 +214,100 @@ describe("runCheck", () => {
     expect(result.reason).toBe("cancelled");
   });
 
-  it("does not fit when every suggestion misses the chosen line", async () => {
-    const client = auskunft({ journeys: [onTime("u2-only")] });
+  it("prefers a fitting connection with the preferred mode", async () => {
+    const client = auskunft({
+      journeys: [
+        journey("s-bahn", [ride({ line: { id: "s7", name: "S7", product: "suburban" } })]),
+        journey("regional", [
+          ride({ line: { id: "re1", name: "RE1", product: "regional" }, departure: "2026-10-26T08:15:00+01:00", arrival: "2026-10-26T08:55:00+01:00" }),
+        ]),
+      ],
+    });
 
-    const result = await runCheck(
-      route({ lineId: "line-s2", lineName: "S2" }),
-      mondayMorning,
-      client,
-    );
-
-    expect(result.status).toBe("doesnt-fit");
-    expect(result.reason).toBe("line");
-  });
-
-  it("fits when one leg is the chosen line", async () => {
-    const client = auskunft({ journeys: [onTime()] });
-
-    const result = await runCheck(
-      route({ lineId: "line-s7", lineName: "S7" }),
-      mondayMorning,
-      client,
-    );
+    const result = await runCheck(route({ preferredMode: "regional" }), mondayMorning, client);
 
     expect(result.status).toBe("fits");
+    expect(result.connection?.refreshToken).toBe("regional");
+  });
+
+  it("still fits without the preferred mode when no connection has it", async () => {
+    const client = auskunft({
+      journeys: [journey("s-bahn", [ride({ line: { id: "s7", name: "S7", product: "suburban" } })])],
+    });
+
+    const result = await runCheck(route({ preferredMode: "regional" }), mondayMorning, client);
+
+    expect(result.status).toBe("fits");
+    expect(result.connection?.refreshToken).toBe("s-bahn");
+  });
+
+  it("does not take a preferred connection that misses the arrival", async () => {
+    const client = auskunft({
+      journeys: [
+        journey("s-bahn", [ride({ line: { id: "s7", name: "S7", product: "suburban" } })]),
+        journey("regional-late", [
+          ride({ line: { id: "re1", name: "RE1", product: "regional" }, departure: "2026-10-26T08:30:00+01:00", arrival: "2026-10-26T09:10:00+01:00" }),
+        ]),
+      ],
+    });
+
+    const result = await runCheck(route({ preferredMode: "regional" }), mondayMorning, client);
+
+    expect(result.connection?.refreshToken).toBe("s-bahn");
+  });
+
+  describe("relaxed travel", () => {
+    function viaTransfer(token: string, arrival: string) {
+      return journey(token, [
+        ride({ departure: "2026-10-26T08:00:00+01:00", arrival: "2026-10-26T08:20:00+01:00" }),
+        ride({ departure: "2026-10-26T08:25:00+01:00", arrival, line: { id: "s2", name: "S2", product: "suburban" } }),
+      ]);
+    }
+
+    function direct(token: string, arrival: string) {
+      return journey(token, [ride({ departure: "2026-10-26T08:10:00+01:00", arrival })]);
+    }
+
+    it("takes the first fitting connection by default", async () => {
+      const client = auskunft({ journeys: [viaTransfer("quick", "2026-10-26T08:40:00+01:00"), direct("calm", "2026-10-26T08:55:00+01:00")] });
+
+      const result = await runCheck(route(), mondayMorning, client);
+
+      expect(result.connection?.refreshToken).toBe("quick");
+    });
+
+    it("takes fewer transfers when the arrival is at most 20 minutes later", async () => {
+      const client = auskunft({ journeys: [viaTransfer("quick", "2026-10-26T08:40:00+01:00"), direct("calm", "2026-10-26T08:55:00+01:00")] });
+
+      const result = await runCheck(route({ relaxed: true }), mondayMorning, client);
+
+      expect(result.status).toBe("fits");
+      expect(result.connection?.refreshToken).toBe("calm");
+    });
+
+    it("does not wait more than 20 minutes for it", async () => {
+      const client = auskunft({ journeys: [viaTransfer("quick", "2026-10-26T08:30:00+01:00"), direct("late-calm", "2026-10-26T08:55:00+01:00")] });
+
+      const result = await runCheck(route({ relaxed: true }), mondayMorning, client);
+
+      expect(result.connection?.refreshToken).toBe("quick");
+    });
+
+    it("applies the preferred mode first and relaxes within it", async () => {
+      const client = auskunft({
+        journeys: [
+          direct("calm-s-bahn", "2026-10-26T08:50:00+01:00"),
+          journey("regional-transfer", [
+            ride({ line: { id: "re1", name: "RE1", product: "regional" }, departure: "2026-10-26T08:00:00+01:00", arrival: "2026-10-26T08:20:00+01:00" }),
+            ride({ line: { id: "s2", name: "S2", product: "suburban" }, departure: "2026-10-26T08:25:00+01:00", arrival: "2026-10-26T08:45:00+01:00" }),
+          ]),
+        ],
+      });
+
+      const result = await runCheck(route({ preferredMode: "regional", relaxed: true }), mondayMorning, client);
+
+      expect(result.connection?.refreshToken).toBe("regional-transfer");
+    });
   });
 
   it("does not fit when every suggestion has too many transfers", async () => {
@@ -299,11 +370,11 @@ describe("runCheck", () => {
     const client = auskunft({
       journeys: [
         journey("late", [ride({ arrival: "2026-10-26T09:20:00+01:00" })]),
-        journey("other-line", [ride({ line: { id: "line-u2", name: "U2" } })]),
+        journey("later", [ride({ arrival: "2026-10-26T09:25:00+01:00" })]),
       ],
     });
 
-    const result = await runCheck(route({ lineName: "S2" }), mondayMorning, client);
+    const result = await runCheck(route(), mondayMorning, client);
 
     expect(result.status).toBe("doesnt-fit");
     expect(result.reason).toBe("arrival");
@@ -545,7 +616,7 @@ describe("alternative", () => {
     expect(todayFromCheck(result)).toBeNull();
   });
 
-  it("skips a further connection that misses the line or has too many transfers", async () => {
+  it("skips a further connection that has too many transfers", async () => {
     const direct = journey("direct", [
       ride({ line: { id: "line-s2", name: "S2" }, arrival: "2026-10-26T08:40:00+01:00" }),
     ]);
@@ -565,7 +636,7 @@ describe("alternative", () => {
     const client: Auskunft = {
       async journeys() {
         return {
-          journeys: [journey("u2", [ride({ line: { id: "line-u2", name: "U2" } })])],
+          journeys: [journey("late", [ride({ arrival: "2026-10-26T09:20:00+01:00" })])],
           realtimeDataUpdatedAt: null,
           earlierRef: "page-2",
         };
@@ -579,7 +650,7 @@ describe("alternative", () => {
     };
 
     const result = await runCheck(
-      route({ lineName: "S2", maxTransfers: 0 }),
+      route({ maxTransfers: 0 }),
       mondayMorning,
       client,
     );

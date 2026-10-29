@@ -122,7 +122,7 @@ describe("defaultWeekdays", () => {
 });
 
 describe("findPlaces", () => {
-  it("keeps stops and lines and drops anything without an id", () => {
+  it("keeps stops and drops anything without an id or of another kind", () => {
     const places = findPlaces([
       { type: "stop", id: "1", name: "Alex" },
       { type: "line", id: "s2", name: "S2" },
@@ -132,7 +132,6 @@ describe("findPlaces", () => {
 
     expect(places).toEqual([
       { kind: "stop", id: "1", name: "Alex" },
-      { kind: "line", id: "s2", name: "S2" },
     ]);
   });
 });

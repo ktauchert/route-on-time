@@ -11,6 +11,9 @@ Diese Punkte haben noch keine Phase. Der erste benutzbare Stand ist mit Phase 8 
 | Andere Verbünde, Fernverkehr | Der erste Stand bleibt beim VBB. Jeder weitere Verbund ist eine weitere Auskunft. |
 | Auslastung | Es gibt keine einheitliche Live-Quelle im VBB. Siehe [Machbarkeit](../machbarkeit.md). |
 | Eigener Rechenweg auf GTFS Static | Wenn die Auskunft wegfällt. Siehe [Prototyp](../prototyp.md). |
+| Weg zur Startstation und von der Zielstation | Nach dem ersten Alltag mit dem Aufbruch-Knopf. Der Nutzer gibt die Gehzeit von zu Hause oder vom Büro zur Haltestelle an, einmal pro Route. Die Suche ändert sich nicht, die Ankunftsuhrzeit bleibt die Grenze. Die Anzeige sagt, wann man losgehen muss: Abfahrt minus Gehzeit. Beim Aufbruch per Knopf suchen die Abfahrten erst ab jetzt plus Gehzeit. |
+| Schnellste oder ruhigste Route, Auslastung | Wenn die Auskunft Auslastung liefert und der Alltag zeigt, was „ruhig“ heißt. „Entspannt“ ist der erste Schritt. |
+| Ausfälle verständlich (Phase 8, Teil D) | Wenn echte Ausfall-Antworten der Auskunft vorliegen: konkreter Grund, bis zu drei Alternativen mit Folgen, nächstbeste Verbindung, wenn nichts passt. |
 | Adressen statt nur Haltestellen | Wenn Haltestellen-Routen sitzen. |
 
 Ein MCP, über den Nutzer ihre eigenen Routen an einen Agenten geben, gehört ebenfalls hierher und nicht in den Bau. Siehe [MCP](../mcp.md).

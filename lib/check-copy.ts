@@ -1,5 +1,6 @@
 import { berlinInstant } from "./check";
 import type { CheckReason, CheckStatus, LegView } from "./check";
+import { modeLabel, type Mode } from "./mode";
 import type { Language } from "./preferences";
 
 const copy = {
@@ -90,6 +91,11 @@ export function checkedAtLabel(language: Language, checkedAt: string) {
     timeZone: "Europe/Berlin",
   }).format(new Date(checkedAt));
   return language === "de" ? `Geprüft um ${time}` : `Checked at ${time}`;
+}
+
+export function noPreferredLabel(language: Language, mode: string) {
+  const name = modeLabel(language, mode as Mode);
+  return language === "de" ? `Keine passende Verbindung mit ${name}.` : `No fitting connection with ${name}.`;
 }
 
 export function leftAtLabel(language: Language, leftAt: string) {

@@ -3,6 +3,7 @@ import { ConnectionBar, ModeChip } from "@/components/connection-bar";
 import { StatusPill, TripProgress } from "@/components/trip-progress";
 import { Button } from "@/components/ui/button";
 import type { CheckResult, LegView, Suggestion } from "@/lib/check";
+import { usesMode } from "@/lib/mode";
 import { countedTrip, tripMoment, upcomingLabel } from "@/lib/moment";
 import {
   checkCopy,
@@ -13,6 +14,7 @@ import {
   failedLabel,
   ageLabel,
   leftAtLabel,
+  noPreferredLabel,
   serviceDayLabel,
   transferGapMinutes,
 } from "@/lib/check-copy";
@@ -118,6 +120,7 @@ export function RouteCheck({
   now,
   leave = false,
   leftAt = null,
+  preferredMode = null,
 }: {
   language: Language;
   routeId: string;
@@ -127,6 +130,7 @@ export function RouteCheck({
   now?: string;
   leave?: boolean;
   leftAt?: string | null;
+  preferredMode?: string | null;
 }) {
   const text = checkCopy(language);
   const trip = check
@@ -179,6 +183,9 @@ export function RouteCheck({
         {check ? (
           <>
             {check.reason ? <p className="font-medium">{text.reason[check.reason]}</p> : null}
+            {preferredMode && trip && check.status === "fits" && !usesMode(trip.legs, preferredMode) ? (
+              <p className="text-sm text-muted-foreground">{noPreferredLabel(language, preferredMode)}</p>
+            ) : null}
             {moment?.progress != null ? <TripProgress language={language} progress={moment.progress} /> : null}
             {moment?.upcomingMinutes != null ? (
               <p className="text-sm font-medium text-signal tabular-nums">

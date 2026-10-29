@@ -76,6 +76,19 @@ describe("RouteCheck", () => {
     expect(screen.getByText("48 min · direkt")).toBeTruthy();
   });
 
+  it("offers more suggestions below the list, until fifteen are shown", () => {
+    const { rerender } = render(
+      <RouteCheck language="de" routeId="1" check={fitting} chosenToken={null} saveFailed={false} />,
+    );
+
+    expect(screen.getByRole("button", { name: "Weitere Vorschläge" })).toBeTruthy();
+
+    const many = { ...fitting, suggestions: Array.from({ length: 15 }, () => fitting.suggestions[0]) };
+    rerender(<RouteCheck language="de" routeId="1" check={many} chosenToken={null} saveFailed={false} />);
+
+    expect(screen.queryByRole("button", { name: "Weitere Vorschläge" })).toBeNull();
+  });
+
   it("uses the English status words", () => {
     render(
       <RouteCheck language="en" routeId="1" check={fitting} chosenToken={null} saveFailed={false} />,

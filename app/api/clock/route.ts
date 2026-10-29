@@ -1,5 +1,6 @@
 import { checkRow, todayFromCheck, type CheckResult, type CheckStatus, type Suggestion } from "@/lib/check";
 import { defaultIntervalMinutes, planTick, secretsMatch, type ClockRoute } from "@/lib/clock";
+import { defaultWindowMinutes } from "@/lib/window";
 import { liveAuskunft } from "@/lib/auskunft";
 import type { Weekday } from "@/lib/route";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -56,11 +57,13 @@ export async function POST(request: Request) {
     );
   if (routes.error || !routes.data) return Response.json({ error: "unavailable" }, { status: 500 });
 
-  const settings = await admin.from("user_settings").select("user_id, check_interval_minutes");
+  const settings = await admin.from("user_settings").select("user_id, check_interval_minutes, arrival_window_minutes");
   const intervals = new Map<string, number>();
+  const windows = new Map<string, number>();
   if (!settings.error) {
     for (const row of settings.data ?? []) {
       intervals.set(row.user_id, row.check_interval_minutes);
+      windows.set(row.user_id, row.arrival_window_minutes);
     }
   }
 
@@ -94,6 +97,7 @@ export async function POST(request: Request) {
       preferredMode: row.preferred_mode,
       relaxed: Boolean(row.relaxed),
       avoidLines: row.avoid_lines ?? [],
+      windowMinutes: windows.get(row.user_id) ?? defaultWindowMinutes,
       todayRefreshToken: row.today_refresh_token,
       todayServiceDate: row.today_service_date,
       leftAt: row.left_at,

@@ -1,5 +1,6 @@
 import { usesMode } from "./mode";
 import { appliesOn, type Weekday } from "./route";
+import { defaultWindowMinutes } from "./window";
 
 export type CheckStatus = "fits" | "doesnt-fit" | "unclear";
 
@@ -89,6 +90,7 @@ export type RouteToCheck = {
   preferredMode: string | null;
   relaxed: boolean;
   avoidLines?: readonly string[];
+  windowMinutes?: number;
   todayRefreshToken: string | null;
   todayServiceDate: string | null;
   leftAt?: string | null;
@@ -372,6 +374,26 @@ function shownSuggestions(all: Suggestion[], picked: Suggestion | undefined, rou
   return all.filter((suggestion) => keep.has(suggestion));
 }
 
+// An arrival route only considers connections that arrive within the window around its time.
+// When every fitting connection is earlier, the latest of them still counts so the route is not
+// reported as broken for arriving early.
+function withinWindow(all: Suggestion[], route: RouteToCheck, serviceDate: string) {
+  if (!route.arrival) return all;
+  const deadline = berlinInstant(serviceDate, route.arrival).getTime();
+  const windowMs = (route.windowMinutes ?? defaultWindowMinutes) * 60 * 1000;
+  const inside = all.filter((suggestion) => {
+    const end = endOf(suggestion);
+    return end >= deadline - windowMs && end <= deadline + windowMs;
+  });
+  if (inside.some((suggestion) => problemOf(suggestion, route, serviceDate) === null)) return inside;
+
+  const earlier = all
+    .filter((suggestion) => endOf(suggestion) < deadline - windowMs && problemOf(suggestion, route, serviceDate) === null)
+    .sort((a, b) => endOf(b) - endOf(a))[0];
+  if (earlier) return [earlier, ...inside].sort((a, b) => endOf(a) - endOf(b));
+  return inside.length > 0 ? inside : all;
+}
+
 function judge(
   raws: RawJourney[],
   realtimeUpdatedAt: number | null,
@@ -380,9 +402,10 @@ function judge(
   now: Date,
   checkedAt: string,
 ): CheckResult {
-  const all = raws
+  const found = raws
     .map(toSuggestion)
     .filter((suggestion): suggestion is Suggestion => suggestion !== null);
+  const all = withinWindow(found, route, serviceDate);
 
   if (all.length === 0) {
     return {
@@ -586,6 +609,54 @@ async function judgeRoute(
     return { ...checked, connection, searched: true, searchFromName: fromName };
   } catch {
     return unanswered(serviceDate, checkedAt);
+  }
+}
+
+export const maximumSuggestions = 15;
+
+// Looks one step further out than the suggestions already on the stand: earlier arrivals for an arrival
+// route, later departures for a route that starts with the leave button. Status and connection stay.
+export async function moreSuggestions(
+  route: RouteToCheck,
+  now: Date,
+  auskunft: Auskunft,
+  current: CheckResult | null,
+): Promise<CheckResult | null> {
+  if (!current || current.suggestions.length === 0) return null;
+  const leave = !route.arrival;
+  const known = current.suggestions;
+  const room = maximumSuggestions - known.length;
+  if (room <= 0) return null;
+
+  try {
+    const from = route.startId;
+    const found = leave
+      ? await auskunft.journeys(
+          from,
+          route.destinationId,
+          new Date(Math.max(...known.map(startOf)) + 60 * 1000),
+          "departure",
+          avoidOf(route),
+        )
+      : await auskunft.journeys(
+          from,
+          route.destinationId,
+          new Date(Math.min(...known.map(endOf)) - 60 * 1000),
+          "arrival",
+          avoidOf(route),
+        );
+
+    const seen = new Set(known.map((suggestion) => suggestion.refreshToken));
+    const fresh = found.journeys
+      .map(toSuggestion)
+      .filter((suggestion): suggestion is Suggestion => suggestion !== null && !seen.has(suggestion.refreshToken))
+      .sort((a, b) => (leave ? startOf(a) - startOf(b) : endOf(b) - endOf(a)))
+      .slice(0, room);
+
+    const suggestions = [...known, ...fresh].sort((a, b) => (leave ? startOf(a) - startOf(b) : endOf(a) - endOf(b)));
+    return { ...current, suggestions };
+  } catch {
+    return null;
   }
 }
 

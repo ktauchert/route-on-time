@@ -32,6 +32,12 @@ _Avoid_: Linie, Pflicht
 Eine einzelne Linie, die eine Route nie benutzen soll, zum Beispiel die S7. Die Suche lässt sie aus, die anderen Linien derselben Art bleiben erlaubt. Eine Verbindung mit gemiedener Linie gilt nie als passend.
 _Avoid_: gesperrte Linie, ausgeschlossene Linie
 
+**Zeitfenster**:
+Wie viele Minuten eine Verbindung vor der Ankunftsuhrzeit ankommen darf, um noch vorgeschlagen zu werden. Voreinstellung 60, einstellbar von 10 bis 240 in den Einstellungen, pro Nutzer. Später als die Ankunftsuhrzeit passt nie. Kommt nichts im Fenster an, zählt die späteste frühere Verbindung.
+
+**Weitere Vorschläge**:
+Ein Knopf unter den Vorschlägen. Er sucht eine Stufe weiter weg, bei Ankunft früher, beim Aufbruch per Knopf später, und hängt die neuen Vorschläge an, bis es 15 sind. Die nächste Prüfung ersetzt die Liste wieder.
+
 **entspannt**:
 Eine Vorliebe der Route: Unter den passenden Verbindungen, die höchstens 20 Minuten später ankommen als die früheste, gewinnt die mit den wenigsten Umstiegen.
 _Avoid_: ruhig, gemütlich

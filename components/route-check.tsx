@@ -1,8 +1,8 @@
-import { checkRoute, chooseConnection, clearConnection, leaveRoute } from "@/app/routes/actions";
+import { checkRoute, chooseConnection, clearConnection, leaveRoute, loadMoreSuggestions } from "@/app/routes/actions";
 import { ConnectionBar, ModeChip } from "@/components/connection-bar";
 import { StatusPill, TripProgress } from "@/components/trip-progress";
 import { Button } from "@/components/ui/button";
-import type { CheckResult, LegView, Suggestion } from "@/lib/check";
+import { maximumSuggestions, type CheckResult, type LegView, type Suggestion } from "@/lib/check";
 import { usesMode } from "@/lib/mode";
 import { countedTrip, tripMoment, upcomingLabel } from "@/lib/moment";
 import {
@@ -273,6 +273,14 @@ export function RouteCheck({
               );
             })}
           </ol>
+          {check.suggestions.length > 0 && check.suggestions.length < maximumSuggestions ? (
+            <form action={loadMoreSuggestions}>
+              <input type="hidden" name="id" value={routeId} />
+              <Button type="submit" variant="outline">
+                {text.more}
+              </Button>
+            </form>
+          ) : null}
         </>
       ) : null}
     </section>

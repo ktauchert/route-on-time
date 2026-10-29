@@ -35,6 +35,9 @@
 17. Vor dem Tippen prüft weder die App noch die Uhr diese Route. Ein Tippen von gestern gilt nicht.
 18. Ein erneutes Tippen am selben Tag beginnt neu: Die Suche geht vom Start der Route aus, nicht von der Stelle, an der die frühere Verbindung gerade wäre. Die alte Verbindung kommt auch bei einem Fehler nicht zurück.
 
+19. Eine Verbindung mit Ankunftsuhrzeit wird nur vorgeschlagen, wenn sie höchstens das Zeitfenster der Nutzerin vor der Uhrzeit ankommt (Voreinstellung 60 Minuten, in den Einstellungen änderbar). Kommt nichts im Fenster an, gilt die späteste frühere Verbindung.
+20. Unter den Vorschlägen steht „Weitere Vorschläge“. Es sucht weiter weg und hängt an, bis 15 erreicht sind.
+
 Entscheidung dazu: [offene Fragen](../offene-fragen.md), Frage 7. Nicht hier: schnellste oder ruhigste Route, Weg zur Haltestelle.
 
 ### F. Eine Ankunftsuhrzeit pro Wochentag

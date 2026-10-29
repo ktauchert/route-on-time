@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { checkCopy, delayLabel, serviceDayLabel } from "./check-copy";
 import {
   checkRow,
+  moreSuggestions,
   runCheck,
   searchDay,
   todayFromCheck,
@@ -32,6 +33,7 @@ function route(overrides: Record<string, unknown> = {}) {
     preferredMode: null,
     relaxed: false,
     avoidLines: [],
+    windowMinutes: 60,
     todayRefreshToken: null,
     todayServiceDate: null,
     ...overrides,
@@ -285,7 +287,7 @@ describe("runCheck", () => {
 
     it("does not drop the best connection when the auskunft returns more than five", async () => {
       const early = Array.from({ length: 5 }, (_, index) =>
-        through(`early-${index}`, `2026-10-26T04:${10 + index}:00+01:00`, `2026-10-26T06:${10 + index}:00+01:00`),
+        through(`early-${index}`, `2026-10-26T04:${10 + index}:00+01:00`, `2026-10-26T07:${10 + index}:00+01:00`),
       );
       const client = auskunft({
         journeys: [...early, through("best", "2026-10-26T06:46:00+01:00", "2026-10-26T07:45:00+01:00")],
@@ -1512,5 +1514,191 @@ describe("avoided lines", () => {
     await runCheck(route(), mondayMorning, client);
 
     expect(asked[0]?.avoid ?? []).toEqual([]);
+  });
+});
+
+describe("the window before the arrival time", () => {
+  const before = new Date("2026-10-26T05:00:00+01:00");
+
+  function arriving(token: string, arrival: string, rides = 1) {
+    const legs = Array.from({ length: rides }, (_, index) =>
+      ride({
+        departure: index === 0 ? "2026-10-26T05:30:00+01:00" : "2026-10-26T06:00:00+01:00",
+        arrival: index === rides - 1 ? arrival : "2026-10-26T05:55:00+01:00",
+      }),
+    );
+    return journey(token, legs);
+  }
+
+  it("shows only connections that arrive within an hour of the arrival time", async () => {
+    const client = auskunft({
+      journeys: [
+        arriving("way-early", "2026-10-26T06:10:00+01:00"),
+        arriving("early", "2026-10-26T07:10:00+01:00"),
+        arriving("close", "2026-10-26T07:30:00+01:00"),
+        arriving("closest", "2026-10-26T07:50:00+01:00"),
+      ],
+    });
+
+    const result = await runCheck(route({ arrival: "08:00" }), before, client);
+
+    expect(result.suggestions.map((item) => item.refreshToken)).toEqual(["early", "close", "closest"]);
+  });
+
+  it("uses the window the route carries", async () => {
+    const client = auskunft({
+      journeys: [
+        arriving("early", "2026-10-26T07:10:00+01:00"),
+        arriving("close", "2026-10-26T07:30:00+01:00"),
+      ],
+    });
+
+    const result = await runCheck(route({ arrival: "08:00", windowMinutes: 45 }), before, client);
+
+    expect(result.suggestions.map((item) => item.refreshToken)).toEqual(["close"]);
+  });
+
+  it("falls back to 60 minutes when the route carries none", async () => {
+    const client = auskunft({
+      journeys: [arriving("early", "2026-10-26T07:10:00+01:00"), arriving("close", "2026-10-26T07:30:00+01:00")],
+    });
+
+    const result = await runCheck(route({ arrival: "08:00", windowMinutes: undefined }), before, client);
+
+    expect(result.suggestions).toHaveLength(2);
+  });
+
+  it("still fits with the closest connection when every one is earlier than the window", async () => {
+    const client = auskunft({
+      journeys: [
+        arriving("far", "2026-10-26T05:50:00+01:00"),
+        arriving("less-far", "2026-10-26T06:20:00+01:00"),
+      ],
+    });
+
+    const result = await runCheck(route({ arrival: "08:00" }), before, client);
+
+    expect(result.status).toBe("fits");
+    expect(result.connection?.refreshToken).toBe("less-far");
+    expect(result.suggestions.map((item) => item.refreshToken)).toEqual(["less-far"]);
+  });
+
+  it("does not leave the window to save a transfer", async () => {
+    const client = auskunft({
+      journeys: [
+        arriving("calm-but-early", "2026-10-26T06:30:00+01:00"),
+        arriving("in-window", "2026-10-26T07:50:00+01:00", 2),
+      ],
+    });
+
+    const result = await runCheck(route({ arrival: "08:00", relaxed: true }), before, client);
+
+    expect(result.connection?.refreshToken).toBe("in-window");
+  });
+
+  it("does not apply to a route that starts with the leave button", async () => {
+    const now = new Date("2026-10-26T17:12:00+01:00");
+    const client = auskunft({
+      journeys: [journey("soon", [ride({ departure: "2026-10-26T17:20:00+01:00", arrival: "2026-10-26T18:10:00+01:00" })])],
+    });
+
+    const result = await runCheck(route({ arrival: "", leftAt: now.toISOString() }), now, client);
+
+    expect(result.suggestions).toHaveLength(1);
+  });
+});
+
+describe("moreSuggestions", () => {
+  const now = new Date("2026-10-26T05:00:00+01:00");
+
+  function ending(token: string, departure: string, arrival: string) {
+    return journey(token, [ride({ departure, arrival })]);
+  }
+
+  function recording(journeys: RawJourney[]) {
+    const asked: { at: Date; direction?: string }[] = [];
+    const client: Auskunft = {
+      async journeys(_from, _to, at, direction) {
+        asked.push({ at, direction });
+        return { journeys, realtimeDataUpdatedAt: null };
+      },
+      async refreshJourney() {
+        return { journey: null, realtimeDataUpdatedAt: null };
+      },
+    };
+    return { client, asked };
+  }
+
+  async function stand(routeOverrides = {}, journeys: RawJourney[] = []) {
+    const first = auskunft({ journeys });
+    return runCheck(route({ arrival: "08:00", ...routeOverrides }), now, first);
+  }
+
+  it("asks for connections that arrive before the earliest one already shown", async () => {
+    const current = await stand({}, [ending("shown", "2026-10-26T06:30:00+01:00", "2026-10-26T07:30:00+01:00")]);
+    const { client, asked } = recording([]);
+
+    await moreSuggestions(route({ arrival: "08:00" }), now, client, current);
+
+    expect(asked).toEqual([{ at: new Date("2026-10-26T07:29:00+01:00"), direction: "arrival" }]);
+  });
+
+  it("adds new connections in arrival order and keeps the status and the chosen connection", async () => {
+    const current = await stand({}, [ending("shown", "2026-10-26T06:30:00+01:00", "2026-10-26T07:30:00+01:00")]);
+    const { client } = recording([
+      ending("shown", "2026-10-26T06:30:00+01:00", "2026-10-26T07:30:00+01:00"),
+      ending("older", "2026-10-26T05:30:00+01:00", "2026-10-26T06:30:00+01:00"),
+      ending("oldest", "2026-10-26T04:30:00+01:00", "2026-10-26T05:30:00+01:00"),
+    ]);
+
+    const more = await moreSuggestions(route({ arrival: "08:00" }), now, client, current);
+
+    expect(more?.suggestions.map((item) => item.refreshToken)).toEqual(["oldest", "older", "shown"]);
+    expect(more?.status).toBe(current.status);
+    expect(more?.connection?.refreshToken).toBe("shown");
+  });
+
+  it("asks for departures after the latest one shown on a leave route", async () => {
+    const leftAt = "2026-10-26T17:12:00+01:00";
+    const leaveRoute = route({ arrival: "", leftAt });
+    const current = await runCheck(
+      leaveRoute,
+      new Date(leftAt),
+      auskunft({ journeys: [ending("first", "2026-10-26T17:20:00+01:00", "2026-10-26T18:10:00+01:00")] }),
+    );
+    const { client, asked } = recording([ending("next", "2026-10-26T17:40:00+01:00", "2026-10-26T18:30:00+01:00")]);
+
+    const more = await moreSuggestions(leaveRoute, new Date(leftAt), client, current);
+
+    expect(asked).toEqual([{ at: new Date("2026-10-26T17:21:00+01:00"), direction: "departure" }]);
+    expect(more?.suggestions.map((item) => item.refreshToken)).toEqual(["first", "next"]);
+  });
+
+  it("stops growing at fifteen suggestions", async () => {
+    const current = await stand({}, [ending("shown", "2026-10-26T06:30:00+01:00", "2026-10-26T07:30:00+01:00")]);
+    const many = Array.from({ length: 20 }, (_, index) =>
+      ending(`old-${index}`, `2026-10-26T04:${10 + index}:00+01:00`, `2026-10-26T05:${10 + index}:00+01:00`),
+    );
+    const { client } = recording(many);
+
+    const more = await moreSuggestions(route({ arrival: "08:00" }), now, client, current);
+
+    expect(more?.suggestions).toHaveLength(15);
+    expect(more?.suggestions.map((item) => item.refreshToken)).toContain("shown");
+  });
+
+  it("returns nothing when the auskunft fails or there is no stand to extend", async () => {
+    const current = await stand({}, [ending("shown", "2026-10-26T06:30:00+01:00", "2026-10-26T07:30:00+01:00")]);
+    const failing: Auskunft = {
+      async journeys() {
+        throw new Error("down");
+      },
+      async refreshJourney() {
+        return { journey: null, realtimeDataUpdatedAt: null };
+      },
+    };
+
+    expect(await moreSuggestions(route({ arrival: "08:00" }), now, failing, current)).toBeNull();
+    expect(await moreSuggestions(route({ arrival: "08:00" }), now, recording([]).client, null)).toBeNull();
   });
 });

@@ -6,7 +6,8 @@ import { SignedIn } from "@/components/signed-in";
 import { StartScreen } from "@/components/start-screen";
 import { RouteCheck } from "@/components/route-check";
 import { RouteHeading } from "@/components/route-heading";
-import { latestCheck, listRoutes } from "@/app/routes/actions";
+import { checkIfDue, latestCheck, listRoutes, userInterval } from "@/app/routes/actions";
+import { AutoCheck } from "@/components/auto-check";
 import { readAppearance } from "@/lib/appearance";
 import { currentUser } from "@/lib/supabase/server";
 
@@ -32,6 +33,7 @@ async function EditRoute({
   if (!route) redirect("/routes");
 
   const check = await latestCheck(route.id);
+  const intervalMinutes = await userInterval();
   const chosenToken =
     route.todayRefreshToken && route.todayServiceDate === check?.serviceDate
       ? route.todayRefreshToken
@@ -44,6 +46,7 @@ async function EditRoute({
       nav={<SignedIn language={language} current="routes" />}
     >
       <RouteHeading language={language} route={route} />
+      <AutoCheck language={language} routeIds={[route.id]} intervalMinutes={intervalMinutes} run={checkIfDue} />
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-start">
         <RouteCheck
           language={language}

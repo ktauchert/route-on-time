@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { RouteIndex } from "@/components/route-index";
 import { SignedIn } from "@/components/signed-in";
 import { StartScreen } from "@/components/start-screen";
-import { listGlances, listRoutes } from "@/app/routes/actions";
+import { checkIfDue, listGlances, listRoutes, userInterval } from "@/app/routes/actions";
+import { AutoCheck } from "@/components/auto-check";
 import { readAppearance } from "@/lib/appearance";
 import { routesForToday } from "@/lib/route";
 import { currentUser } from "@/lib/supabase/server";
@@ -20,6 +21,7 @@ async function Index() {
   const { language, theme } = await readAppearance();
   const { routes, missingTable } = await listRoutes();
   const glances = await listGlances(routes);
+  const intervalMinutes = await userInterval();
 
   return (
     <StartScreen
@@ -27,6 +29,12 @@ async function Index() {
       theme={theme}
       nav={<SignedIn language={language} current="routes" />}
     >
+      <AutoCheck
+        language={language}
+        routeIds={routesForToday(routes).map((route) => route.id)}
+        intervalMinutes={intervalMinutes}
+        run={checkIfDue}
+      />
       <RouteIndex
         language={language}
         routes={routes}

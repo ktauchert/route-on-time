@@ -10,6 +10,7 @@ import {
   type Suggestion,
 } from "@/lib/check";
 import { hafasClient, liveAuskunft } from "@/lib/auskunft";
+import { defaultIntervalMinutes, isDue } from "@/lib/clock";
 import { glanceFor, type RouteGlance } from "@/lib/moment";
 import { findPlaces, routeProblems, storedRouteName, type StoredRoute, type Weekday } from "@/lib/route";
 import { createClient, currentUser } from "@/lib/supabase/server";
@@ -315,4 +316,44 @@ export async function latestCheck(routeId: string): Promise<CheckResult | null> 
     searchFromName: data.search_from_name,
     failedAt: data.failed_at,
   };
+}
+
+export async function userInterval(): Promise<number> {
+  const user = await currentUser();
+  const supabase = await createClient();
+  if (!user || !supabase) return defaultIntervalMinutes;
+
+  const { data } = await supabase
+    .from("user_settings")
+    .select("check_interval_minutes")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  return data?.check_interval_minutes ?? defaultIntervalMinutes;
+}
+
+export async function checkIfDue(routeIds: string[]): Promise<number> {
+  const user = await currentUser();
+  if (!user) return 0;
+
+  const intervalMinutes = await userInterval();
+  const { routes } = await listRoutes();
+  const now = new Date();
+  let written = 0;
+
+  for (const route of routes.filter((item) => routeIds.includes(item.id))) {
+    const previous = await latestCheck(route.id);
+    const due = isDue({ id: route.id, userId: user.id, intervalMinutes, previous, route: routeToCheck(route) }, now);
+    if (!due) continue;
+
+    const result = await runCheck(routeToCheck(route), now, liveAuskunft(), previous);
+    if (!result.searched) continue;
+    if (!(await saveCheck(user.id, route.id, result))) continue;
+
+    const today = todayFromCheck(result);
+    if (today) await rememberToday(route.id, today.refreshToken, today.serviceDate);
+    written += 1;
+  }
+
+  return written;
 }

@@ -68,6 +68,7 @@ export type CheckResult = {
   noAlternative: boolean;
   searched: boolean;
   searchFromName: string | null;
+  failedAt?: string | null;
 };
 
 export type TravelPosition =
@@ -426,11 +427,29 @@ function keptStand(previous: CheckResult): CheckResult {
   return { ...previous, searched: false };
 }
 
+function isFailure(result: CheckResult) {
+  return result.status === "unclear" && (result.reason === "no-answer" || result.reason === "stale");
+}
+
 export async function runCheck(
   route: RouteToCheck,
   now: Date,
   auskunft: Auskunft,
   previous: CheckResult | null = null,
+): Promise<CheckResult> {
+  const result = await judgeRoute(route, now, auskunft, previous);
+  if (!isFailure(result)) return { ...result, failedAt: null };
+
+  const kept = previous?.serviceDate === result.serviceDate && !isFailure(previous) ? previous : null;
+  if (!kept) return result;
+  return { ...kept, searched: true, failedAt: now.toISOString() };
+}
+
+async function judgeRoute(
+  route: RouteToCheck,
+  now: Date,
+  auskunft: Auskunft,
+  previous: CheckResult | null,
 ): Promise<CheckResult> {
   const serviceDate = searchDay(route.weekdays, route.arrival, now);
   const checkedAt = now.toISOString();
@@ -483,6 +502,7 @@ export function checkRow(userId: string, routeId: string, result: CheckResult) {
     alternative: result.alternative,
     no_alternative: result.noAlternative,
     search_from_name: result.searchFromName,
+    failed_at: result.failedAt ?? null,
   };
 }
 

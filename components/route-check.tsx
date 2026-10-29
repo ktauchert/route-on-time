@@ -9,6 +9,8 @@ import {
   clockLabel,
   connectionSummary,
   delayLabel,
+  failedLabel,
+  ageLabel,
   serviceDayLabel,
   transferGapMinutes,
 } from "@/lib/check-copy";
@@ -166,7 +168,13 @@ export function RouteCheck({
                 </p>
               ) : null}
               <p className="tabular-nums">{checkedAtLabel(language, check.checkedAt)}</p>
+              {now ? <p className="tabular-nums">{ageLabel(language, check.checkedAt, new Date(now))}</p> : null}
             </div>
+            {check.failedAt ? (
+              <p role="status" className="rounded-xl border border-unclear/30 bg-unclear/10 p-3 text-sm text-unclear">
+                {failedLabel(language, check.failedAt)}
+              </p>
+            ) : null}
             {chosenToken ? (
               <form action={clearConnection}>
                 <input type="hidden" name="id" value={routeId} />

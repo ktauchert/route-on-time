@@ -293,7 +293,7 @@ export async function latestCheck(routeId: string): Promise<CheckResult | null> 
   const { data, error } = await supabase
     .from("route_checks")
     .select(
-      "service_date, status, reason, checked_at, connection, suggestions, alternative, no_alternative, search_from_name",
+      "service_date, status, reason, checked_at, connection, suggestions, alternative, no_alternative, search_from_name, failed_at",
     )
     .eq("route_id", routeId)
     .order("checked_at", { ascending: false })
@@ -313,5 +313,6 @@ export async function latestCheck(routeId: string): Promise<CheckResult | null> 
     noAlternative: Boolean(data.no_alternative),
     searched: true,
     searchFromName: data.search_from_name,
+    failedAt: data.failed_at,
   };
 }

@@ -87,6 +87,46 @@ describe("RouteCheck", () => {
     expect(screen.getByText("S7")).toBeTruthy();
   });
 
+  it("shows how old the stand is when the time is known", () => {
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={fitting}
+        chosenToken={null}
+        saveFailed={false}
+        now="2026-10-26T06:03:00.000Z"
+      />,
+    );
+
+    expect(screen.getByText("Geprüft um 07:00")).toBeTruthy();
+    expect(screen.getByText("vor 3 min")).toBeTruthy();
+  });
+
+  it("keeps the last stand and says that a newer check failed", () => {
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={{ ...fitting, failedAt: "2026-10-26T06:30:00.000Z" }}
+        chosenToken={null}
+        saveFailed={false}
+      />,
+    );
+
+    expect(screen.getByText("passt")).toBeTruthy();
+    expect(screen.getByText("Die Prüfung um 07:30 hat nicht geklappt. Der Stand ist älter.")).toBeTruthy();
+    expect(screen.getByText("08:02 → 08:50")).toBeTruthy();
+  });
+
+  it("shows no failure note for a clean stand", () => {
+    render(
+      <RouteCheck language="de" routeId="1" check={fitting} chosenToken={null} saveFailed={false} />,
+    );
+
+    expect(screen.queryByText(/hat nicht geklappt/)).toBeNull();
+  });
+
   it("shows the empty sentence and not the failure sentence", () => {
     render(
       <RouteCheck

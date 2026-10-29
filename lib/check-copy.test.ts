@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { connectionSummary } from "./check-copy";
+import { ageLabel, connectionSummary, failedLabel } from "./check-copy";
 import type { LegView } from "./check";
 
 function leg(departure: string, arrival: string, walking = false): LegView {
@@ -53,5 +53,39 @@ describe("connectionSummary", () => {
 
   it("has nothing to say without legs", () => {
     expect(connectionSummary("de", [])).toBeNull();
+  });
+});
+
+describe("ageLabel", () => {
+  const now = new Date("2026-10-26T08:00:00+01:00");
+
+  it("says just now within the first minute", () => {
+    expect(ageLabel("de", "2026-10-26T07:59:40+01:00", now)).toBe("gerade eben");
+    expect(ageLabel("en", "2026-10-26T07:59:40+01:00", now)).toBe("just now");
+  });
+
+  it("counts minutes", () => {
+    expect(ageLabel("de", "2026-10-26T07:57:00+01:00", now)).toBe("vor 3 min");
+    expect(ageLabel("en", "2026-10-26T07:57:00+01:00", now)).toBe("3 min ago");
+  });
+
+  it("counts hours and minutes beyond an hour", () => {
+    expect(ageLabel("de", "2026-10-26T06:55:00+01:00", now)).toBe("vor 1 h 5 min");
+    expect(ageLabel("en", "2026-10-26T06:00:00+01:00", now)).toBe("2 h ago");
+  });
+
+  it("never reports a negative age", () => {
+    expect(ageLabel("de", "2026-10-26T08:05:00+01:00", now)).toBe("gerade eben");
+  });
+});
+
+describe("failedLabel", () => {
+  it("names the time of the failed check and says the stand above is older", () => {
+    expect(failedLabel("de", "2026-10-26T07:30:00+01:00")).toBe(
+      "Die Prüfung um 07:30 hat nicht geklappt. Der Stand ist älter.",
+    );
+    expect(failedLabel("en", "2026-10-26T07:30:00+01:00")).toBe(
+      "The check at 07:30 did not work. This stand is older.",
+    );
   });
 });

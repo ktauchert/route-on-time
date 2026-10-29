@@ -22,6 +22,7 @@ function checkFromRow(row: {
   alternative: unknown;
   no_alternative: boolean | null;
   search_from_name: string | null;
+  failed_at: string | null;
 }): CheckResult | null {
   if (!statuses.includes(row.status as CheckStatus)) return null;
   return {
@@ -35,6 +36,7 @@ function checkFromRow(row: {
     noAlternative: Boolean(row.no_alternative),
     searched: true,
     searchFromName: row.search_from_name,
+    failedAt: row.failed_at,
   };
 }
 
@@ -65,7 +67,7 @@ export async function POST(request: Request) {
   const checks = await admin
     .from("route_checks")
     .select(
-      "route_id, service_date, status, reason, checked_at, connection, suggestions, alternative, no_alternative, search_from_name",
+      "route_id, service_date, status, reason, checked_at, connection, suggestions, alternative, no_alternative, search_from_name, failed_at",
     )
     .order("checked_at", { ascending: false });
   if (checks.error) return Response.json({ error: "unavailable" }, { status: 500 });

@@ -911,3 +911,89 @@ describe("route check access", () => {
     expect(sql).toContain("auth.uid() = user_id");
   });
 });
+
+describe("a failed check keeps the last good stand", () => {
+  const later = new Date("2026-10-26T07:30:00+01:00");
+
+  async function good() {
+    return runCheck(route(), mondayMorning, auskunft({ journeys: [onTime()] }));
+  }
+
+  it("keeps the stand, the connection and its time when the auskunft does not answer", async () => {
+    const before = await good();
+
+    const result = await runCheck(route(), later, auskunft({ fail: true }), before);
+
+    expect(result.status).toBe("fits");
+    expect(result.connection).toEqual(before.connection);
+    expect(result.suggestions).toEqual(before.suggestions);
+    expect(result.checkedAt).toBe(before.checkedAt);
+    expect(result.failedAt).toBe(later.toISOString());
+    expect(result.searched).toBe(true);
+  });
+
+  it("keeps the stand when the realtime data is too old to judge", async () => {
+    const before = await good();
+    const now = new Date("2026-10-26T07:50:00+01:00");
+    const stale = auskunft({
+      journeys: [onTime()],
+      realtimeDataUpdatedAt: Math.floor((now.getTime() - 20 * 60 * 1000) / 1000),
+    });
+
+    const result = await runCheck(route(), now, stale, before);
+
+    expect(result.status).toBe("fits");
+    expect(result.checkedAt).toBe(before.checkedAt);
+    expect(result.failedAt).toBe(now.toISOString());
+  });
+
+  it("clears the failure once a check answers again", async () => {
+    const before = await good();
+    const failed = await runCheck(route(), later, auskunft({ fail: true }), before);
+
+    const result = await runCheck(route(), new Date("2026-10-26T07:35:00+01:00"), auskunft({}), failed);
+
+    expect(result.status).toBe("fits");
+    expect(result.failedAt ?? null).toBeNull();
+    expect(result.checkedAt).toBe("2026-10-26T06:35:00.000Z");
+  });
+
+  it("does not carry a stand over from another day", async () => {
+    const yesterday = { ...(await good()), serviceDate: "2026-10-23" };
+
+    const result = await runCheck(route(), later, auskunft({ fail: true }), yesterday);
+
+    expect(result.status).toBe("unclear");
+    expect(result.reason).toBe("no-answer");
+    expect(result.failedAt ?? null).toBeNull();
+  });
+
+  it("is unclear when there was no good stand before", async () => {
+    const result = await runCheck(route(), later, auskunft({ fail: true }), null);
+
+    expect(result.status).toBe("unclear");
+    expect(result.reason).toBe("no-answer");
+  });
+
+  it("does not hide an answered doesnt-fit behind an older fits", async () => {
+    const before = await good();
+    const tooLate = auskunft({
+      journeys: [
+        journey("late", [ride({ arrival: "2026-10-26T09:30:00+01:00" })]),
+      ],
+    });
+
+    const result = await runCheck(route(), later, tooLate, before);
+
+    expect(result.status).toBe("doesnt-fit");
+    expect(result.failedAt ?? null).toBeNull();
+  });
+
+  it("writes the failure time to its own column", async () => {
+    const before = await good();
+    const result = await runCheck(route(), later, auskunft({ fail: true }), before);
+
+    expect(checkRow("user-1", "route-1", result).failed_at).toBe(later.toISOString());
+    expect(checkRow("user-1", "route-1", before).failed_at).toBeNull();
+  });
+});

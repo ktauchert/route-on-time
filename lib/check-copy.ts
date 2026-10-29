@@ -86,6 +86,20 @@ export function checkedAtLabel(language: Language, checkedAt: string) {
   return language === "de" ? `Geprüft um ${time}` : `Checked at ${time}`;
 }
 
+export function ageLabel(language: Language, checkedAt: string, now: Date) {
+  const minutes = Math.max(0, Math.floor((now.getTime() - new Date(checkedAt).getTime()) / 60000));
+  if (minutes < 1) return language === "de" ? "gerade eben" : "just now";
+  const span = durationLabel(minutes);
+  return language === "de" ? `vor ${span}` : `${span} ago`;
+}
+
+export function failedLabel(language: Language, failedAt: string) {
+  const time = clockLabel(failedAt);
+  return language === "de"
+    ? `Die Prüfung um ${time} hat nicht geklappt. Der Stand ist älter.`
+    : `The check at ${time} did not work. This stand is older.`;
+}
+
 export function serviceDayLabel(language: Language, serviceDate: string) {
   const prefix = language === "de" ? "Gesucht für" : "Searched for";
   const locale = language === "de" ? "de-DE" : "en-GB";

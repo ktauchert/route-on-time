@@ -1,6 +1,6 @@
 # Roadmap
 
-Jede Zeile ist eine Phase. Der Durchgang liest die verlinkte Datei und baut nur diese Phase. Stand: noch keine Phase begonnen.
+Jede Zeile ist eine Phase. Der Durchgang liest die verlinkte Datei und baut nur diese Phase. Stand 29. Oktober 2026: Phasen 0 bis 7 sind in `main`. Phase 8 ist im Bau, Teile A bis C sind fertig, D bis F warten auf Entscheidungen.
 
 | Phase | Ergebnis | Datei | Issue |
 | --- | --- | --- | --- |
@@ -12,7 +12,7 @@ Jede Zeile ist eine Phase. Der Durchgang liest die verlinkte Datei und baut nur 
 | 5 | Bei passt nicht erscheint eine neu gesuchte Alternative. | [05 Alternative](./phasen/05-alternative.md) | [#6](https://github.com/ktauchert/route-on-time/issues/6) |
 | 6 | Eine angetretene Fahrt wird ab dem nächsten Halt neu gesucht. | [06 Unterwegs](./phasen/06-unterwegs.md) | [#7](https://github.com/ktauchert/route-on-time/issues/7) |
 | 7 | Supabase Cron prüft fällige Routen, auch bei geschlossenem Tab. | [07 Uhr](./phasen/07-uhr.md) | [#8](https://github.com/ktauchert/route-on-time/issues/8) |
-| 8 | Die App lässt sich auf den Home-Bildschirm legen. | [08 PWA](./phasen/08-pwa.md) | [#9](https://github.com/ktauchert/route-on-time/issues/9) |
+| 8 | Die App lässt sich auf den Home-Bildschirm legen, prüft beim Öffnen und behält bei Fehlern den letzten guten Stand. | [08 PWA](./phasen/08-pwa.md) | [#9](https://github.com/ktauchert/route-on-time/issues/9) |
 
 Danach, erst wenn die Fragen dazu beantwortet sind: [Später](./phasen/spaeter.md).
 

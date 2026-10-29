@@ -5,6 +5,7 @@ import { RouteIndex } from "@/components/route-index";
 import { SignedIn } from "@/components/signed-in";
 import { StartScreen } from "@/components/start-screen";
 import { checkIfDue, listGlances, listRoutes, userInterval } from "@/app/routes/actions";
+import { InstallHint } from "@/components/install-hint";
 import { AutoCheck } from "@/components/auto-check";
 import { readAppearance } from "@/lib/appearance";
 import { routesForToday } from "@/lib/route";
@@ -29,6 +30,7 @@ async function Index() {
       theme={theme}
       nav={<SignedIn language={language} current="routes" />}
     >
+      <InstallHint language={language} />
       <AutoCheck
         language={language}
         routeIds={routesForToday(routes).map((route) => route.id)}

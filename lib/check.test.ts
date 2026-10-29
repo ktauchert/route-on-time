@@ -1155,3 +1155,21 @@ describe("a route that starts with the leave button", () => {
     expect(result.reason).toBe("empty");
   });
 });
+
+describe("the transport mode of a leg", () => {
+  it("is kept from the auskunft's product", async () => {
+    const client = auskunft({
+      journeys: [journey("a", [ride({ line: { id: "line-s7", name: "S7", product: "suburban" } })])],
+    });
+
+    const result = await runCheck(route(), mondayMorning, client);
+
+    expect(result.suggestions[0]?.legs[0]?.product).toBe("suburban");
+  });
+
+  it("is empty when the auskunft names none", async () => {
+    const result = await runCheck(route(), mondayMorning, auskunft({}));
+
+    expect(result.suggestions[0]?.legs[0]?.product ?? null).toBeNull();
+  });
+});

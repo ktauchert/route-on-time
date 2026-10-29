@@ -1,4 +1,5 @@
 import { checkRoute, chooseConnection, clearConnection, leaveRoute } from "@/app/routes/actions";
+import { ConnectionBar, ModeChip } from "@/components/connection-bar";
 import { StatusPill, TripProgress } from "@/components/trip-progress";
 import { Button } from "@/components/ui/button";
 import type { CheckResult, LegView, Suggestion } from "@/lib/check";
@@ -35,9 +36,7 @@ function LegLine({
         {leg.walking ? (
           <span className="text-muted-foreground">{walking}</span>
         ) : (
-          <span className="rounded-md bg-foreground px-1.5 py-0.5 text-xs font-semibold text-background">
-            {leg.lineName || ""}
-          </span>
+          <ModeChip leg={leg} />
         )}
         <span className="tabular-nums">
           {clockLabel(leg.departure)}
@@ -59,17 +58,23 @@ function LegLine({
 
 function SuggestionLegs({
   suggestion,
+  summary,
   walking,
   transfer,
   cancelled,
 }: {
   suggestion: Suggestion;
+  summary: string;
   walking: string;
   transfer: string;
   cancelled: string;
 }) {
   return (
-    <ol className="flex flex-col gap-2 border-l-2 border-border pl-3">
+    <details className="group">
+      <summary className="w-fit cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
+        {summary}
+      </summary>
+      <ol className="mt-3 flex flex-col gap-2 border-l-2 border-border pl-3">
       {suggestion.legs.map((leg, index) => {
         const previous = suggestion.legs[index - 1];
         const gap = previous ? transferGapMinutes(previous.arrival, leg.departure) : null;
@@ -84,7 +89,8 @@ function SuggestionLegs({
           </li>
         );
       })}
-    </ol>
+      </ol>
+    </details>
   );
 }
 
@@ -214,7 +220,8 @@ export function RouteCheck({
               <h3 className="text-xs font-semibold tracking-widest text-unclear uppercase">{text.alternative}</h3>
               {check.alternative.refreshToken === chosenToken ? chosenBadge : null}
               <SuggestionHead language={language} suggestion={check.alternative} />
-              <SuggestionLegs suggestion={check.alternative} {...legs} />
+              <ConnectionBar language={language} legs={check.alternative.legs} />
+              <SuggestionLegs suggestion={check.alternative} summary={text.legsSummary} {...legs} />
             </div>
           ) : null}
           {check.suggestions.length > 0 ? (
@@ -232,7 +239,8 @@ export function RouteCheck({
                 >
                   {chosen ? chosenBadge : null}
                   <SuggestionHead language={language} suggestion={suggestion} />
-                  <SuggestionLegs suggestion={suggestion} {...legs} />
+                  <ConnectionBar language={language} legs={suggestion.legs} />
+                  <SuggestionLegs suggestion={suggestion} summary={text.legsSummary} {...legs} />
                   {!chosen && suggestion.refreshToken ? (
                     <form action={chooseConnection}>
                       <input type="hidden" name="id" value={routeId} />

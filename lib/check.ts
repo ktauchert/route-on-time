@@ -15,7 +15,7 @@ export type CheckReason =
 export type RawLeg = {
   walking?: boolean;
   cancelled?: boolean;
-  line?: { id?: string; name?: string } | null;
+  line?: { id?: string; name?: string; product?: string } | null;
   origin?: { id?: string; name?: string } | null;
   destination?: { id?: string; name?: string } | null;
   departure?: string | null;
@@ -40,6 +40,7 @@ export type LegView = {
   walking: boolean;
   lineId: string | null;
   lineName: string | null;
+  product?: string | null;
   originId: string | null;
   originName: string;
   destinationId: string | null;
@@ -181,6 +182,7 @@ function mapLeg(raw: RawLeg): LegView {
     walking: Boolean(raw.walking),
     lineId: raw.line?.id ?? null,
     lineName: raw.line?.name ?? null,
+    product: raw.line?.product ?? null,
     originId: raw.origin?.id ?? null,
     originName: raw.origin?.name ?? "",
     destinationId: raw.destination?.id ?? null,

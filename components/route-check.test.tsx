@@ -68,7 +68,7 @@ describe("RouteCheck", () => {
     expect(screen.getByText("Geprüft um 07:00")).toBeTruthy();
     expect(screen.getByText(/Montag/)).toBeTruthy();
     expect(screen.getByText("Fußweg")).toBeTruthy();
-    expect(screen.getByText("S7")).toBeTruthy();
+    expect(screen.getAllByText("S7")).toHaveLength(2);
     expect(screen.getByText(/S\+U Alexanderplatz → S\+U Zoologischer Garten/)).toBeTruthy();
     expect(screen.getByText(/\+2 min/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Als heutige Verbindung" })).toBeTruthy();
@@ -84,7 +84,29 @@ describe("RouteCheck", () => {
     expect(screen.getByRole("button", { name: "Check now" })).toBeTruthy();
     expect(screen.getByText("Fits")).toBeTruthy();
     expect(screen.getByText("Walk")).toBeTruthy();
-    expect(screen.getByText("S7")).toBeTruthy();
+    expect(screen.getAllByText("S7")).toHaveLength(2);
+  });
+
+  it("shows the bar first and folds the legs away", () => {
+    const { container } = render(
+      <RouteCheck language="de" routeId="1" check={fitting} chosenToken={null} saveFailed={false} />,
+    );
+
+    expect(screen.getAllByRole("img")).toHaveLength(1);
+    const details = container.querySelector("details");
+    expect(details).toBeTruthy();
+    expect(details?.hasAttribute("open")).toBe(false);
+    expect(details?.querySelector("summary")?.textContent).toBe("Abschnitte");
+    expect(details?.textContent).toContain("S+U Alexanderplatz → S+U Zoologischer Garten");
+  });
+
+  it("colors the line chip by its mode", () => {
+    const { container } = render(
+      <RouteCheck language="de" routeId="1" check={fitting} chosenToken={null} saveFailed={false} />,
+    );
+
+    const chips = Array.from(container.querySelectorAll("details [data-mode]"));
+    expect(chips.map((chip) => chip.getAttribute("data-mode"))).toEqual(["suburban"]);
   });
 
   it("leads with the leave button for a route that was not left yet", () => {
@@ -238,7 +260,7 @@ describe("RouteCheck", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Alternative" })).toBeTruthy();
-    expect(screen.getByText("RE1")).toBeTruthy();
+    expect(screen.getAllByText("RE1").length).toBeGreaterThan(0);
     expect(screen.getByText(/S Bernau Bhf/)).toBeTruthy();
   });
 

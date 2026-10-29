@@ -4,7 +4,7 @@ declare module "vbb-hafas" {
   type JourneyLeg = {
     walking?: boolean;
     cancelled?: boolean;
-    line?: { id?: string; name?: string } | null;
+    line?: { id?: string; name?: string; product?: string } | null;
     origin?: { id?: string; name?: string } | null;
     destination?: { id?: string; name?: string } | null;
     stopovers?: Array<{
@@ -33,6 +33,7 @@ declare module "vbb-hafas" {
       to: string,
       options: {
         arrival?: Date;
+        departure?: Date;
         earlierThan?: string;
         results?: number;
         language?: string;

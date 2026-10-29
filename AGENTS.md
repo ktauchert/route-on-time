@@ -17,6 +17,7 @@ Jede Phase hat genau ein GitHub-Issue. Der Branch heißt wie die Phase, von `mai
 | [#7](https://github.com/ktauchert/route-on-time/issues/7) | `phase-6-unterwegs` |
 | [#8](https://github.com/ktauchert/route-on-time/issues/8) | `phase-7-uhr` |
 | [#9](https://github.com/ktauchert/route-on-time/issues/9) | `phase-8-pwa` |
+| [#23](https://github.com/ktauchert/route-on-time/issues/23) | `phase-9-ausfaelle` |
 
 Ein Durchgang bearbeitet ein Issue auf seinem Branch. Der Pull Request geht nach `main` und nennt die Issue-Nummer. Der nächste Branch entsteht erst, wenn der vorherige in `main` ist. Kein zweites Issue auf demselben Branch, außer die beiden Phasen ausdrücklich zusammen gebaut werden.
 

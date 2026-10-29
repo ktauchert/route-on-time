@@ -27,18 +27,13 @@
 9. Antwortet die Auskunft nicht oder ist die Echtzeit veraltet, bleibt der letzte gute Stand desselben Tages sichtbar, mit seiner Uhrzeit und dem Hinweis, dass die neue Prüfung nicht geklappt hat.
 10. Ein neuer guter Stand ersetzt ihn. Ein Stand eines anderen Tages wird nie fortgeschrieben.
 
-### D. Ausfälle verständlich machen (Folgeschritt, Entscheidung offen)
-
-11. Bei „passt nicht“ steht der konkrete Grund: welcher Abschnitt ausfällt, welcher Anschluss reißt, um wie viele Minuten.
-12. Statt einer Alternative bis zu drei, mit den Folgen (spätere Ankunft, mehr Umstiege).
-13. Gibt es keine, die passt, steht die nächstbeste Verbindung mit ihrer Ankunft da, auch wenn sie die Vorgabe reißt.
-
 ### E. „Ich verlasse das Büro“
 
 14. Eine Route hat entweder eine Ankunftsuhrzeit oder den Aufbruch per Knopf. Im Formular gibt es dafür eine Wahl.
 15. Der Knopf „Ich verlasse das Büro“ steht auf der Route und im Schnellstart. Er speichert den Moment, sucht ab dann die nächsten Abfahrten und macht die erste, die passt, zur heutigen Verbindung.
 16. Die Vorgabe prüft Umstiegszeit, Höchstzahl der Umstiege und Linie, nicht die Ankunft. Fällt die gewählte Fahrt aus, sucht die nächste Prüfung neu und die nächste passende wird die Alternative.
 17. Vor dem Tippen prüft weder die App noch die Uhr diese Route. Ein Tippen von gestern gilt nicht.
+18. Ein erneutes Tippen am selben Tag beginnt neu: Die Suche geht vom Start der Route aus, nicht von der Stelle, an der die frühere Verbindung gerade wäre. Die alte Verbindung kommt auch bei einem Fehler nicht zurück.
 
 Entscheidung dazu: [offene Fragen](../offene-fragen.md), Frage 7. Nicht hier: schnellste oder ruhigste Route, Weg zur Haltestelle.
 
@@ -46,7 +41,7 @@ Entscheidung dazu: [offene Fragen](../offene-fragen.md), Frage 7. Nicht hier: sc
 
 Entfällt. Wer freitags früher fährt, legt eine eigene Route für Freitag an. Siehe [offene Fragen](../offene-fragen.md), Frage 8.
 
-D ändert Texte und Alternativen und ist noch nicht gebaut. Es braucht echte Ausfall-Antworten der Auskunft.
+Der frühere Teil D (Ausfälle verständlich) ist jetzt [Phase 9](./09-ausfaelle.md).
 
 ## Fertig, wenn
 

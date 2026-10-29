@@ -4,7 +4,7 @@ Geprüft am 27. Oktober 2026 gegen die öffentlichen Angaben von VBB, `hafas-cli
 
 - [AGENTS.md](../AGENTS.md) — TDD und GitHub-CI
 - [Projektplan](./projektplan.md) — Ziel, Annahmen, was eine Phase ist
-- [Roadmap](./roadmap.md) — Phasen 0 bis 8 und was danach liegt
+- [Roadmap](./roadmap.md) — Phasen 0 bis 9 und was danach liegt
 - [Umsetzungsplan](./umsetzungsplan.md) — ein Durchgang baut eine Phase
 - [MCP](./mcp.md) — welche Server beim Bau helfen
 - [Machbarkeit](./machbarkeit.md) — was an der Voranalyse stimmt, wo sie bricht, was eine ausprobierbare PWA zusätzlich braucht

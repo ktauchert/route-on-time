@@ -31,6 +31,7 @@ function route(overrides: Record<string, unknown> = {}) {
     maxTransfers: null,
     preferredMode: null,
     relaxed: false,
+    avoidLines: [],
     todayRefreshToken: null,
     todayServiceDate: null,
     ...overrides,
@@ -1315,5 +1316,111 @@ describe("tapping the leave button again", () => {
     expect(result.status).toBe("unclear");
     expect(result.reason).toBe("no-answer");
     expect(result.connection).toBeNull();
+  });
+});
+
+describe("avoided lines", () => {
+  function recordingClient(pages: RawJourney[][]) {
+    const asked: Array<{ method: string; direction?: string; avoid?: string[] }> = [];
+    const client: Auskunft = {
+      async journeys(_from, _to, _at, direction, avoid) {
+        asked.push({ method: "journeys", direction, avoid });
+        return { journeys: pages.shift() ?? [], realtimeDataUpdatedAt: null, earlierRef: "ref" };
+      },
+      async earlier(_from, _to, _ref, avoid) {
+        asked.push({ method: "earlier", avoid });
+        return { journeys: pages.shift() ?? [], realtimeDataUpdatedAt: null };
+      },
+      async refreshJourney() {
+        throw new Error("unused");
+      },
+    };
+    return { client, asked };
+  }
+
+  const s7 = { id: "s7", name: "S7", product: "suburban" };
+  const s2 = { id: "s2", name: "S2", product: "suburban" };
+
+  it("asks the auskunft to leave the lines out", async () => {
+    const { client, asked } = recordingClient([[journey("a", [ride({ line: s2 })])]]);
+
+    await runCheck(route({ avoidLines: ["S7"] }), mondayMorning, client);
+
+    expect(asked[0]).toMatchObject({ method: "journeys", avoid: ["S7"] });
+  });
+
+  it("asks again without the lines for the further search", async () => {
+    const { client, asked } = recordingClient([
+      [journey("late", [ride({ line: s2, arrival: "2026-10-26T09:30:00+01:00" })])],
+      [journey("alt", [ride({ line: s2 })])],
+    ]);
+
+    const result = await runCheck(route({ avoidLines: ["S7"] }), mondayMorning, client);
+
+    expect(asked.map((entry) => [entry.method, entry.avoid])).toEqual([
+      ["journeys", ["S7"]],
+      ["earlier", ["S7"]],
+    ]);
+    expect(result.alternative?.refreshToken).toBe("alt");
+  });
+
+  it("keeps them when the person leaves now", async () => {
+    const { client, asked } = recordingClient([[journey("a", [ride({ line: s2 })])]]);
+
+    await runCheck(
+      route({ arrival: "", leftAt: mondayMorning.toISOString(), avoidLines: ["S7"] }),
+      mondayMorning,
+      client,
+    );
+
+    expect(asked[0]).toMatchObject({ direction: "departure", avoid: ["S7"] });
+  });
+
+  it("does not take a connection with an avoided line, even when the auskunft returns one", async () => {
+    const { client } = recordingClient([
+      [journey("with-s7", [ride({ line: s7 })]), journey("with-s2", [ride({ line: s2 })])],
+    ]);
+
+    const result = await runCheck(route({ avoidLines: ["S7"] }), mondayMorning, client);
+
+    expect(result.status).toBe("fits");
+    expect(result.connection?.refreshToken).toBe("with-s2");
+  });
+
+  it("says it does not fit when every connection uses an avoided line", async () => {
+    const { client } = recordingClient([[journey("with-s7", [ride({ line: s7 })])]]);
+
+    const result = await runCheck(route({ avoidLines: ["S7"] }), mondayMorning, client);
+
+    expect(result.status).toBe("doesnt-fit");
+    expect(result.reason).toBe("avoided");
+  });
+
+  it("ignores spaces and case in the line name", async () => {
+    const { client } = recordingClient([
+      [journey("with-s7", [ride({ line: { id: "s7", name: "S 7", product: "suburban" } })])],
+    ]);
+
+    const result = await runCheck(route({ avoidLines: ["s7"] }), mondayMorning, client);
+
+    expect(result.reason).toBe("avoided");
+  });
+
+  it("does not avoid a line that merely starts with the same letters", async () => {
+    const { client } = recordingClient([
+      [journey("with-s75", [ride({ line: { id: "s75", name: "S75", product: "suburban" } })])],
+    ]);
+
+    const result = await runCheck(route({ avoidLines: ["S7"] }), mondayMorning, client);
+
+    expect(result.status).toBe("fits");
+  });
+
+  it("asks with no avoid list when nothing is avoided", async () => {
+    const { client, asked } = recordingClient([[journey("a", [ride({ line: s2 })])]]);
+
+    await runCheck(route(), mondayMorning, client);
+
+    expect(asked[0]?.avoid ?? []).toEqual([]);
   });
 });

@@ -8,6 +8,7 @@ export type CheckReason =
   | "transfer"
   | "transfers"
   | "cancelled"
+  | "avoided"
   | "empty"
   | "no-answer"
   | "stale";
@@ -87,6 +88,7 @@ export type RouteToCheck = {
   maxTransfers: number | null;
   preferredMode: string | null;
   relaxed: boolean;
+  avoidLines?: readonly string[];
   todayRefreshToken: string | null;
   todayServiceDate: string | null;
   leftAt?: string | null;
@@ -104,8 +106,9 @@ export type Auskunft = {
     to: string,
     at: Date,
     direction?: "arrival" | "departure",
+    avoid?: string[],
   ) => Promise<JourneyPage>;
-  earlier?: (from: string, to: string, earlierRef: string) => Promise<JourneyPage>;
+  earlier?: (from: string, to: string, earlierRef: string, avoid?: string[]) => Promise<JourneyPage>;
   refreshJourney: (
     refreshToken: string,
   ) => Promise<{ journey: RawJourney | null; realtimeDataUpdatedAt: number | null }>;
@@ -266,8 +269,19 @@ function rideLegs(suggestion: Suggestion) {
   return suggestion.legs.filter((leg) => !leg.walking);
 }
 
+function lineKey(name: string | null | undefined) {
+  return (name ?? "").replace(/\s+/g, "").toUpperCase();
+}
+
+function usesAvoidedLine(suggestion: Suggestion, route: RouteToCheck) {
+  const avoided = new Set((route.avoidLines ?? []).map(lineKey).filter(Boolean));
+  if (avoided.size === 0) return false;
+  return rideLegs(suggestion).some((leg) => avoided.has(lineKey(leg.lineName)));
+}
+
 function problemOf(suggestion: Suggestion, route: RouteToCheck, serviceDate: string): CheckReason | null {
   if (suggestion.legs.some((leg) => leg.cancelled)) return "cancelled";
+  if (usesAvoidedLine(suggestion, route)) return "avoided";
 
   if (route.arrival) {
     const arrival = suggestion.legs[suggestion.legs.length - 1]?.arrival;
@@ -299,6 +313,10 @@ function isStale(departure: string, realtimeUpdatedAt: number | null, now: Date)
   const departureMs = new Date(departure).getTime();
   const withinNextHour = departureMs >= now.getTime() && departureMs - now.getTime() <= hourMs;
   return withinNextHour && now.getTime() - updatedMs > staleMs;
+}
+
+function avoidOf(route: RouteToCheck) {
+  return [...(route.avoidLines ?? [])];
 }
 
 const relaxedSlackMs = 20 * 60 * 1000;
@@ -424,7 +442,7 @@ async function withAlternative(
 
   let page: JourneyPage;
   try {
-    page = await auskunft.earlier(fromId, route.destinationId, earlierRef);
+    page = await auskunft.earlier(fromId, route.destinationId, earlierRef, avoidOf(route));
   } catch {
     return { ...result, alternative: null, noAlternative: true };
   }
@@ -530,8 +548,8 @@ async function judgeRoute(
     const fromId = moved ? position.id : route.startId;
     const fromName = moved ? position.name : null;
     const found = leave
-      ? await auskunft.journeys(fromId, route.destinationId, now, "departure")
-      : await auskunft.journeys(fromId, route.destinationId, berlinInstant(serviceDate, route.arrival));
+      ? await auskunft.journeys(fromId, route.destinationId, now, "departure", avoidOf(route))
+      : await auskunft.journeys(fromId, route.destinationId, berlinInstant(serviceDate, route.arrival), "arrival", avoidOf(route));
     const judged = judge(found.journeys, found.realtimeDataUpdatedAt, route, serviceDate, now, checkedAt);
     const checked = leave
       ? afterLeaveSearch(judged, chosen)

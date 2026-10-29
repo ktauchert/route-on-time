@@ -1244,3 +1244,76 @@ describe("the transport mode of a leg", () => {
     expect(result.suggestions[0]?.legs[0]?.product ?? null).toBeNull();
   });
 });
+
+describe("tapping the leave button again", () => {
+  const during = new Date("2026-10-26T08:45:00+01:00");
+
+  function recording() {
+    const from: string[] = [];
+    const client: Auskunft = {
+      async journeys(start) {
+        from.push(start);
+        return {
+          journeys: [
+            journey("fresh", [ride({ departure: "2026-10-26T08:50:00+01:00", arrival: "2026-10-26T09:30:00+01:00" })]),
+          ],
+          realtimeDataUpdatedAt: null,
+        };
+      },
+      async refreshJourney() {
+        throw new Error("unused");
+      },
+    };
+    return { client, from };
+  }
+
+  function stand(checkedAt: string): CheckResult {
+    return { ...carriedStand(), checkedAt };
+  }
+
+  it("searches from the start of the route, not from where the old connection would be", async () => {
+    const { client, from } = recording();
+    const earlier = stand("2026-10-26T08:30:00+01:00");
+
+    const result = await runCheck(
+      route({ arrival: "", leftAt: during.toISOString() }),
+      during,
+      client,
+      earlier,
+    );
+
+    expect(from).toEqual(["start"]);
+    expect(result.searchFromName).toBeNull();
+    expect(result.connection?.refreshToken).toBe("fresh");
+  });
+
+  it("keeps searching from the next stop after that tap, once the new connection is under way", async () => {
+    const { client, from } = recording();
+    const afterTap = stand("2026-10-26T08:46:00+01:00");
+
+    const result = await runCheck(
+      route({ arrival: "", leftAt: "2026-10-26T08:44:00+01:00" }),
+      new Date("2026-10-26T08:47:00+01:00"),
+      client,
+      afterTap,
+    );
+
+    expect(from).toEqual(["griebnitzsee"]);
+    expect(result.searchFromName).toBe("S Griebnitzsee");
+  });
+
+  it("does not bring the old connection back when the new search fails", async () => {
+    const earlier = stand("2026-10-26T08:30:00+01:00");
+
+    const result = await runCheck(
+      route({ arrival: "", leftAt: during.toISOString() }),
+      during,
+      auskunft({ fail: true }),
+      earlier,
+    );
+
+    expect(result.status).toBe("unclear");
+    expect(result.reason).toBe("no-answer");
+    expect(result.connection).toBeNull();
+  });
+});

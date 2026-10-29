@@ -469,12 +469,19 @@ function isFailure(result: CheckResult) {
   return result.status === "unclear" && (result.reason === "no-answer" || result.reason === "stale");
 }
 
+function leftAfter(route: RouteToCheck, previous: CheckResult | null) {
+  if (route.arrival || !route.leftAt || !previous) return false;
+  return new Date(route.leftAt).getTime() > new Date(previous.checkedAt).getTime();
+}
+
 export async function runCheck(
   route: RouteToCheck,
   now: Date,
   auskunft: Auskunft,
-  previous: CheckResult | null = null,
+  carried: CheckResult | null = null,
 ): Promise<CheckResult> {
+  // A new tap on the leave button starts over: the old connection says nothing about where the person is now.
+  const previous = leftAfter(route, carried) ? null : carried;
   const result = await judgeRoute(route, now, auskunft, previous);
   if (!isFailure(result)) return { ...result, failedAt: null };
 

@@ -28,6 +28,10 @@ _Avoid_: Produkt, Modus, Bahn
 Das Verkehrsmittel, das eine Route lieber nutzt. Unter den passenden Verbindungen kommt eine damit zuerst. Gibt es keine, gilt die erste passende, und die App sagt es.
 _Avoid_: Linie, Pflicht
 
+**gemiedene Linie**:
+Eine einzelne Linie, die eine Route nie benutzen soll, zum Beispiel die S7. Die Suche lässt sie aus, die anderen Linien derselben Art bleiben erlaubt. Eine Verbindung mit gemiedener Linie gilt nie als passend.
+_Avoid_: gesperrte Linie, ausgeschlossene Linie
+
 **entspannt**:
 Eine Vorliebe der Route: Unter den passenden Verbindungen, die höchstens 20 Minuten später ankommen als die früheste, gewinnt die mit den wenigsten Umstiegen.
 _Avoid_: ruhig, gemütlich

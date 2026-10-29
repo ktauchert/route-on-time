@@ -34,6 +34,28 @@ export async function searchStops(query: string) {
   return findPlaces(results).filter((place) => place.kind === "stop");
 }
 
+export async function searchLines(stopIds: string[]) {
+  const found = await Promise.all(
+    stopIds
+      .filter(Boolean)
+      .map((id) => hafas().stop(id, { linesOfStops: true }).catch(() => null)),
+  );
+
+  return found.flatMap((stop) =>
+    (Array.isArray(stop?.lines) ? stop.lines : []).flatMap((line: { name?: string; product?: string }) =>
+      line.name ? [{ name: line.name, product: line.product ?? null }] : [],
+    ),
+  );
+}
+
+function avoidLinesFrom(formData: FormData) {
+  const names = formData
+    .getAll("avoidLines")
+    .map((value) => String(value).replace(/\s+/g, "").toUpperCase())
+    .filter(Boolean);
+  return Array.from(new Set(names));
+}
+
 function preferredModeFrom(formData: FormData) {
   const value = String(formData.get("preferredMode") ?? "");
   return (preferableModes as readonly string[]).includes(value) ? value : null;
@@ -97,6 +119,7 @@ export async function saveRoute(formData: FormData) {
     max_transfers: transfers ? Number(transfers) : null,
     preferred_mode: preferredModeFrom(formData),
     relaxed: formData.get("relaxed") === "on",
+    avoid_lines: avoidLinesFrom(formData),
   };
 
   const result = id
@@ -133,7 +156,7 @@ export async function listRoutes(): Promise<{ routes: StoredRoute[]; missingTabl
   const { data, error } = await supabase
     .from("routes")
     .select(
-      "id, name, start_id, start_name, destination_id, destination_name, arrival, weekdays, transfer_minutes, max_transfers, preferred_mode, relaxed, today_refresh_token, today_service_date, left_at",
+      "id, name, start_id, start_name, destination_id, destination_name, arrival, weekdays, transfer_minutes, max_transfers, preferred_mode, relaxed, avoid_lines, today_refresh_token, today_service_date, left_at",
     )
     .order("created_at", { ascending: false });
 
@@ -154,6 +177,7 @@ export async function listRoutes(): Promise<{ routes: StoredRoute[]; missingTabl
       maxTransfers: row.max_transfers,
       preferredMode: row.preferred_mode,
       relaxed: Boolean(row.relaxed),
+      avoidLines: row.avoid_lines ?? [],
       todayRefreshToken: row.today_refresh_token,
       todayServiceDate: row.today_service_date,
       leftAt: row.left_at,
@@ -208,6 +232,7 @@ function routeToCheck(route: StoredRoute) {
     maxTransfers: route.maxTransfers,
     preferredMode: route.preferredMode,
     relaxed: route.relaxed,
+    avoidLines: route.avoidLines,
     todayRefreshToken: route.todayRefreshToken,
     todayServiceDate: route.todayServiceDate,
     leftAt: route.leftAt,

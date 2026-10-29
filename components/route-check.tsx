@@ -121,6 +121,7 @@ export function RouteCheck({
   leave = false,
   leftAt = null,
   preferredMode = null,
+  avoidLines = [],
 }: {
   language: Language;
   routeId: string;
@@ -131,6 +132,7 @@ export function RouteCheck({
   leave?: boolean;
   leftAt?: string | null;
   preferredMode?: string | null;
+  avoidLines?: string[];
 }) {
   const text = checkCopy(language);
   const trip = check
@@ -171,6 +173,15 @@ export function RouteCheck({
             ) : null}
           </div>
         </div>
+
+        {avoidLines.length > 0 ? (
+          <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span>{text.avoiding}</span>
+            {avoidLines.map((name) => (
+              <ModeChip key={name} leg={{ lineName: name }} />
+            ))}
+          </p>
+        ) : null}
 
         {leave && leftAt ? <p className="text-sm font-medium tabular-nums">{leftAtLabel(language, leftAt)}</p> : null}
 

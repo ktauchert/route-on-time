@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { saveRoute } from "@/app/routes/actions";
+import { saveRoute, searchLines } from "@/app/routes/actions";
+import { AvoidLines } from "@/components/avoid-lines";
 import { DeleteRoute } from "@/components/delete-route";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ export function RouteForm({
   const [destination, setDestination] = useState<Place | null>(
     route ? { id: route.destinationId, name: route.destinationName } : null,
   );
+  const [avoid, setAvoid] = useState<string[]>(route?.avoidLines ?? []);
   const [days, setDays] = useState<Weekday[]>(route?.weekdays ?? [...defaultWeekdays]);
   const [timing, setTiming] = useState<"arrival" | "leave">(route && !route.arrival ? "leave" : "arrival");
 
@@ -153,6 +155,14 @@ export function RouteForm({
             ))}
           </select>
         </label>
+
+        <AvoidLines
+          language={language}
+          value={avoid}
+          onChange={setAvoid}
+          stopIds={[start?.id, destination?.id].filter((id): id is string => Boolean(id))}
+          loadLines={searchLines}
+        />
 
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" name="relaxed" defaultChecked={route?.relaxed ?? false} className="mt-1" />

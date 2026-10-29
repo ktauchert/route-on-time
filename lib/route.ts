@@ -140,6 +140,7 @@ export type StoredRoute = {
   maxTransfers: number | null;
   preferredMode: string | null;
   relaxed: boolean;
+  avoidLines: string[];
   todayRefreshToken: string | null;
   todayServiceDate: string | null;
   leftAt: string | null;

@@ -59,6 +59,7 @@ function subject(overrides: Partial<ClockRoute> = {}): ClockRoute {
       maxTransfers: null,
       preferredMode: null,
       relaxed: false,
+      avoidLines: [],
       todayRefreshToken: null,
       todayServiceDate: null,
     },

@@ -71,6 +71,7 @@ const route: StoredRoute = {
   maxTransfers: null,
   preferredMode: null,
   relaxed: false,
+  avoidLines: [],
   todayRefreshToken: null,
   todayServiceDate: null,
   leftAt: null,
@@ -256,6 +257,21 @@ describe("RouteForm", () => {
     render(<RouteForm language="de" route={null} failed={false} />);
 
     expect((screen.getByRole("combobox", { name: "Bevorzugtes Verkehrsmittel" }) as HTMLSelectElement).value).toBe("");
+  });
+
+  it("offers to avoid lines, with the chosen ones shown and sent with the form", () => {
+    render(<RouteForm language="de" route={{ ...route, avoidLines: ["S7"] }} failed={false} />);
+
+    expect(screen.getByText("Linien meiden")).toBeTruthy();
+    expect(screen.getByText("S7").getAttribute("data-mode")).toBe("suburban");
+    expect(document.querySelector("input[name=avoidLines]")?.getAttribute("value")).toBe("S7");
+    expect(screen.getByRole("button", { name: "Linien ändern" })).toHaveProperty("disabled", false);
+  });
+
+  it("does not open the line choice before a start is chosen", () => {
+    render(<RouteForm language="de" route={null} failed={false} />);
+
+    expect(screen.getByRole("button", { name: "Linien wählen" })).toHaveProperty("disabled", true);
   });
 
   it("offers relaxed travel and says what it does", () => {

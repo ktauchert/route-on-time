@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   const routes = await admin
     .from("routes")
     .select(
-      "id, user_id, start_id, destination_id, arrival, weekdays, transfer_minutes, max_transfers, preferred_mode, relaxed, today_refresh_token, today_service_date, left_at",
+      "id, user_id, start_id, destination_id, arrival, weekdays, transfer_minutes, max_transfers, preferred_mode, relaxed, avoid_lines, today_refresh_token, today_service_date, left_at",
     );
   if (routes.error || !routes.data) return Response.json({ error: "unavailable" }, { status: 500 });
 
@@ -93,6 +93,7 @@ export async function POST(request: Request) {
       maxTransfers: row.max_transfers,
       preferredMode: row.preferred_mode,
       relaxed: Boolean(row.relaxed),
+      avoidLines: row.avoid_lines ?? [],
       todayRefreshToken: row.today_refresh_token,
       todayServiceDate: row.today_service_date,
       leftAt: row.left_at,

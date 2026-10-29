@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { RouteCheck } from "./route-check";
 import type { CheckResult } from "@/lib/check";
@@ -137,6 +137,43 @@ describe("RouteCheck", () => {
     );
 
     expect(screen.queryByText(/Keine passende Verbindung mit/)).toBeNull();
+  });
+
+  it("names the lines it leaves out", () => {
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={fitting}
+        chosenToken={null}
+        saveFailed={false}
+        avoidLines={["S7", "RE1"]}
+      />,
+    );
+
+    const avoided = within(screen.getByText("Gemieden:").closest("p")!);
+    expect(avoided.getByText("S7").getAttribute("data-mode")).toBe("suburban");
+    expect(avoided.getByText("RE1").getAttribute("data-mode")).toBe("regional");
+  });
+
+  it("says nothing about avoided lines when there are none", () => {
+    render(<RouteCheck language="de" routeId="1" check={fitting} chosenToken={null} saveFailed={false} />);
+
+    expect(screen.queryByText("Gemieden:")).toBeNull();
+  });
+
+  it("explains an avoided line as the reason", () => {
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={{ ...fitting, status: "doesnt-fit", reason: "avoided" }}
+        chosenToken={null}
+        saveFailed={false}
+      />,
+    );
+
+    expect(screen.getByText("Die Verbindung nutzt eine Linie, die du meiden willst.")).toBeTruthy();
   });
 
   it("leads with the leave button for a route that was not left yet", () => {

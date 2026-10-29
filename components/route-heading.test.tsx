@@ -17,6 +17,7 @@ const route: StoredRoute = {
   maxTransfers: null,
   preferredMode: null,
   relaxed: false,
+  avoidLines: [],
   todayRefreshToken: null,
   todayServiceDate: null,
   leftAt: null,

@@ -11,6 +11,8 @@ describe("RegisterForm", () => {
   it("asks for email, password, and a repeated password", () => {
     render(<RegisterForm language="de" failure={null} />);
 
+    expect(screen.getByRole("heading", { name: "Registrieren" })).toBeTruthy();
+
     expect(screen.getByLabelText("E-Mail")).toBeTruthy();
     expect(screen.getByLabelText("Passwort")).toBeTruthy();
     expect(screen.getByLabelText("Passwort wiederholen")).toBeTruthy();

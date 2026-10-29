@@ -4,13 +4,13 @@ import { redirect } from "next/navigation";
 import { RouteIndex } from "@/components/route-index";
 import { SignedIn } from "@/components/signed-in";
 import { StartScreen } from "@/components/start-screen";
-import { listRoutes } from "@/app/routes/actions";
+import { listGlances, listRoutes } from "@/app/routes/actions";
 import { readAppearance } from "@/lib/appearance";
 import { routesForToday } from "@/lib/route";
 import { currentUser } from "@/lib/supabase/server";
 
 function IndexFallback() {
-  return <StartScreen language="de" theme="paper" board />;
+  return <StartScreen language="de" theme="paper" />;
 }
 
 async function Index() {
@@ -19,15 +19,20 @@ async function Index() {
 
   const { language, theme } = await readAppearance();
   const { routes, missingTable } = await listRoutes();
+  const glances = await listGlances(routes);
 
   return (
-    <StartScreen language={language} theme={theme} board>
-      <SignedIn language={language} />
+    <StartScreen
+      language={language}
+      theme={theme}
+      nav={<SignedIn language={language} current="routes" />}
+    >
       <RouteIndex
         language={language}
         routes={routes}
         today={routesForToday(routes)}
         missingTable={missingTable}
+        glances={glances}
       />
     </StartScreen>
   );

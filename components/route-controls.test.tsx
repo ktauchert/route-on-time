@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { DeleteRoute } from "./delete-route";
 import { QuickStart } from "./quick-start";
 import { RouteForm } from "./route-form";
+import { RouteIndex } from "./route-index";
 import type { StoredRoute } from "@/lib/route";
 
 describe("DeleteRoute", () => {
@@ -18,6 +19,16 @@ describe("DeleteRoute", () => {
 
     expect(screen.getByText("Diese Route löschen?")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Wirklich löschen" })).toBeTruthy();
+  });
+
+  it("keeps the route when the question is declined", () => {
+    render(<DeleteRoute id="1" language="de" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Löschen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Behalten" }));
+
+    expect(screen.queryByText("Diese Route löschen?")).toBeNull();
+    expect(screen.getByRole("button", { name: "Löschen" })).toBeTruthy();
   });
 });
 
@@ -64,6 +75,67 @@ const route: StoredRoute = {
   todayServiceDate: null,
 };
 
+describe("RouteIndex", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("shows the minutes until departure that were known when the page loaded", () => {
+    render(
+      <RouteIndex
+        language="de"
+        routes={[route]}
+        today={[]}
+        missingTable={false}
+        glances={{ "1": { status: "fits", upcomingMinutes: 25, progress: null } }}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { level: 2, name: "Routen" })).toBeTruthy();
+    expect(screen.getByText("Abfahrt in 25 min")).toBeTruthy();
+    expect(screen.getByText("passt")).toBeTruthy();
+    expect(screen.getByText("Ankunft 09:00")).toBeTruthy();
+    expect(screen.getByText("Mo")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "zur Arbeit" }).getAttribute("href")).toBe("/routes/1");
+  });
+
+  it("marks the route whose departure comes next", () => {
+    render(
+      <RouteIndex
+        language="de"
+        routes={[route, { ...route, id: "2", name: "Heimweg" }]}
+        today={[]}
+        missingTable={false}
+        glances={{
+          "1": { status: "fits", upcomingMinutes: 40, progress: null },
+          "2": { status: "fits", upcomingMinutes: 12, progress: null },
+        }}
+      />,
+    );
+
+    const marked = screen.getByText("Nächste Abfahrt").closest("li")!;
+    expect(marked.textContent).toContain("Heimweg");
+    expect(marked.getAttribute("data-next")).toBe("true");
+    expect(screen.getAllByText("Nächste Abfahrt")).toHaveLength(1);
+  });
+
+  it("leads from an empty list to a new route on every screen", () => {
+    render(<RouteIndex language="de" routes={[]} today={[]} missingTable={false} glances={{}} />);
+
+    expect(screen.getByText("Noch keine Route.")).toBeTruthy();
+    const links = screen.getAllByRole("link", { name: "Neue Route" });
+    const always = links.find((link) => !link.className.includes("hidden"));
+    expect(always?.getAttribute("href")).toBe("/routes/new");
+  });
+
+  it("keeps deleting quiet in the list", () => {
+    render(<RouteIndex language="de" routes={[route]} today={[]} missingTable={false} glances={{}} />);
+
+    const remove = screen.getByRole("button", { name: "Löschen" });
+    expect(remove.getAttribute("data-variant")).toBe("ghost");
+  });
+});
+
 describe("RouteForm", () => {
   afterEach(() => {
     cleanup();
@@ -73,5 +145,19 @@ describe("RouteForm", () => {
     render(<RouteForm language="de" route={route} failed={false} />);
 
     expect(screen.getByRole("link", { name: "Abbrechen" }).getAttribute("href")).toBe("/routes");
+    const save = screen.getByRole("button", { name: "Speichern" });
+    expect(screen.getByRole("button", { name: "Löschen" }).getAttribute("data-size")).toBe(
+      save.getAttribute("data-size"),
+    );
+    expect(screen.getByRole("button", { name: "Löschen" }).getAttribute("data-variant")).toBe("ghost");
+    expect(screen.getByRole("button", { name: "Speichern" }).getAttribute("data-variant")).toBe("default");
+  });
+
+  it("groups the form into route, requirement and weekdays", () => {
+    render(<RouteForm language="de" route={route} failed={false} />);
+
+    expect(screen.getByRole("group", { name: "Strecke" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Vorgabe" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Wochentage" })).toBeTruthy();
   });
 });

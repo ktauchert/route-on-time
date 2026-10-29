@@ -1,17 +1,17 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
-import { DeleteRoute } from "@/components/delete-route";
 import { RouteForm } from "@/components/route-form";
 import { SignedIn } from "@/components/signed-in";
 import { StartScreen } from "@/components/start-screen";
 import { RouteCheck } from "@/components/route-check";
+import { RouteHeading } from "@/components/route-heading";
 import { latestCheck, listRoutes } from "@/app/routes/actions";
 import { readAppearance } from "@/lib/appearance";
 import { currentUser } from "@/lib/supabase/server";
 
 function FormFallback() {
-  return <StartScreen language="de" theme="paper" board />;
+  return <StartScreen language="de" theme="paper" />;
 }
 
 async function EditRoute({
@@ -38,17 +38,28 @@ async function EditRoute({
       : null;
 
   return (
-    <StartScreen language={language} theme={theme} board>
-      <SignedIn language={language} />
-      <RouteCheck
-        language={language}
-        routeId={route.id}
-        check={check}
-        chosenToken={chosenToken}
-        saveFailed={params.error === "check"}
-      />
-      <RouteForm language={language} route={route} failed={params.error === "1"} />
-      <DeleteRoute id={route.id} language={language} />
+    <StartScreen
+      language={language}
+      theme={theme}
+      nav={<SignedIn language={language} current="routes" />}
+    >
+      <RouteHeading language={language} route={route} />
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-start">
+        <RouteCheck
+          language={language}
+          routeId={route.id}
+          check={check}
+          chosenToken={chosenToken}
+          saveFailed={params.error === "check"}
+          now={new Date().toISOString()}
+        />
+        <div className="flex flex-col gap-3 lg:sticky lg:top-24">
+          <h3 className="text-base font-semibold tracking-tight">
+            {language === "de" ? "Route bearbeiten" : "Edit route"}
+          </h3>
+          <RouteForm language={language} route={route} failed={params.error === "1"} />
+        </div>
+      </div>
     </StartScreen>
   );
 }

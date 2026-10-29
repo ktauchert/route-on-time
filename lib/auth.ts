@@ -35,15 +35,16 @@ export function registerFailureReason(error: { message: string; code?: string })
   return "failed";
 }
 
-const publicPaths = new Set(["/sign-in", "/register", "/api/clock"]);
+const guestOnly = new Set(["/sign-in", "/register"]);
+const openPaths = new Set(["/", "/sign-in", "/register", "/api/clock"]);
 
 export function authRedirect(pathname: string, signedIn: boolean) {
-  if (!signedIn && !publicPaths.has(pathname)) {
-    return "/sign-in";
+  if (signedIn && (pathname === "/" || guestOnly.has(pathname))) {
+    return "/routes";
   }
 
-  if (signedIn && publicPaths.has(pathname)) {
-    return "/";
+  if (!signedIn && !openPaths.has(pathname)) {
+    return "/sign-in";
   }
 
   return null;

@@ -10,6 +10,7 @@ import {
   type Suggestion,
 } from "@/lib/check";
 import { hafasClient, liveAuskunft } from "@/lib/auskunft";
+import { glanceFor, type RouteGlance } from "@/lib/moment";
 import { findPlaces, routeProblems, storedRouteName, type StoredRoute, type Weekday } from "@/lib/route";
 import { createClient, currentUser } from "@/lib/supabase/server";
 
@@ -155,6 +156,43 @@ export async function listRoutes(): Promise<{ routes: StoredRoute[]; missingTabl
       todayServiceDate: row.today_service_date,
     })),
   };
+}
+
+export async function listGlances(routes: StoredRoute[], now = new Date()): Promise<Record<string, RouteGlance>> {
+  const supabase = await createClient();
+  if (!supabase || routes.length === 0) return {};
+
+  const { data, error } = await supabase
+    .from("route_checks")
+    .select("route_id, service_date, status, connection, suggestions, alternative")
+    .order("checked_at", { ascending: false });
+
+  if (error || !data) return {};
+
+  const latest = new Map<string, (typeof data)[number]>();
+  for (const row of data) {
+    if (!latest.has(row.route_id)) latest.set(row.route_id, row);
+  }
+
+  const glances: Record<string, RouteGlance> = {};
+  for (const route of routes) {
+    const row = latest.get(route.id);
+    if (!row || !statuses.includes(row.status)) continue;
+    const glance = glanceFor(
+      route,
+      {
+        serviceDate: row.service_date,
+        status: row.status,
+        connection: (row.connection ?? null) as Suggestion | null,
+        suggestions: (row.suggestions ?? []) as Suggestion[],
+        alternative: (row.alternative ?? null) as Suggestion | null,
+      },
+      now,
+    );
+    if (glance) glances[route.id] = glance;
+  }
+
+  return glances;
 }
 
 function routeToCheck(route: StoredRoute) {

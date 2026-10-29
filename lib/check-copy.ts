@@ -1,5 +1,5 @@
 import { berlinInstant } from "./check";
-import type { CheckReason, CheckStatus } from "./check";
+import type { CheckReason, CheckStatus, LegView } from "./check";
 import type { Language } from "./preferences";
 
 const copy = {
@@ -25,6 +25,7 @@ const copy = {
     transfer: "Umstieg",
     cancelledLeg: "Fällt aus",
     alternative: "Alternative",
+    suggestions: "Vorschläge",
     noAlternative: "Es gibt keine Alternative.",
     restFrom: "Restweg ab",
   },
@@ -50,6 +51,7 @@ const copy = {
     transfer: "Transfer",
     cancelledLeg: "Cancelled",
     alternative: "Alternative",
+    suggestions: "Suggestions",
     noAlternative: "There is no alternative.",
     restFrom: "Rest of the trip from",
   },
@@ -111,4 +113,36 @@ export function transferGapMinutes(arrival: string, departure: string) {
   if (!arrival || !departure) return null;
   const minutes = Math.round((new Date(departure).getTime() - new Date(arrival).getTime()) / 60000);
   return minutes > 0 ? minutes : null;
+}
+
+export function durationLabel(minutes: number) {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (hours === 0) return `${minutes} min`;
+  return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
+}
+
+export function connectionSummary(language: Language, legs: LegView[]) {
+  const first = legs[0];
+  const last = legs[legs.length - 1];
+  if (!first || !last) return null;
+
+  const total = Math.round((new Date(last.arrival).getTime() - new Date(first.departure).getTime()) / 60000);
+  const duration = durationLabel(total);
+
+  const rides = legs.filter((leg) => !leg.walking).length;
+  const changes = Math.max(0, rides - 1);
+  const transfers =
+    changes === 0
+      ? language === "de" ? "direkt" : "direct"
+      : language === "de"
+        ? `${changes} ${changes === 1 ? "Umstieg" : "Umstiege"}`
+        : `${changes} ${changes === 1 ? "transfer" : "transfers"}`;
+
+  return {
+    departure: clockLabel(first.departure),
+    arrival: clockLabel(last.arrival),
+    duration,
+    transfers,
+  };
 }

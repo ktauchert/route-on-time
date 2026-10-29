@@ -2,13 +2,14 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { RouteForm } from "@/components/route-form";
+import { RouteHeading } from "@/components/route-heading";
 import { SignedIn } from "@/components/signed-in";
 import { StartScreen } from "@/components/start-screen";
 import { readAppearance } from "@/lib/appearance";
 import { currentUser } from "@/lib/supabase/server";
 
 function FormFallback() {
-  return <StartScreen language="de" theme="paper" board />;
+  return <StartScreen language="de" theme="paper" />;
 }
 
 async function NewRoute({
@@ -23,9 +24,15 @@ async function NewRoute({
   const { language, theme } = await readAppearance();
 
   return (
-    <StartScreen language={language} theme={theme} board>
-      <SignedIn language={language} />
-      <RouteForm language={language} route={null} failed={params.error === "1"} />
+    <StartScreen
+      language={language}
+      theme={theme}
+      nav={<SignedIn language={language} current="routes" />}
+    >
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+        <RouteHeading language={language} route={null} />
+        <RouteForm language={language} route={null} failed={params.error === "1"} />
+      </div>
     </StartScreen>
   );
 }

@@ -11,6 +11,7 @@ describe("LoginForm", () => {
   it("asks for email and password and has no registration", () => {
     render(<LoginForm language="de" failed={false} />);
 
+    expect(screen.getByRole("heading", { name: "Anmelden" })).toBeTruthy();
     expect(screen.getByLabelText("E-Mail")).toBeTruthy();
     expect(screen.getByLabelText("Passwort")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Anmelden" })).toBeTruthy();

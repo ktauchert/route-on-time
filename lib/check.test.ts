@@ -1,12 +1,12 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { checkCopy, delayLabel, serviceDayLabel } from "./check-copy";
+import { checkCopy, delayLabel, differenceLabels, problemSentence, serviceDayLabel } from "./check-copy";
 import {
   checkRow,
+  problemDetail,
   moreSuggestions,
   runCheck,
   searchDay,
-  todayFromCheck,
   travelPosition,
   type Auskunft,
   type CheckResult,
@@ -613,8 +613,7 @@ describe("alternative", () => {
 
     expect(result.status).toBe("fits");
     expect(calls).toEqual(["journeys"]);
-    expect(result.alternative).toBeNull();
-    expect(todayFromCheck(result)).toBeNull();
+    expect(result.alternatives).toEqual([]);
   });
 
   it("takes the first later page connection that meets the arrival, not the second of the first five", async () => {
@@ -652,13 +651,13 @@ describe("alternative", () => {
 
     expect(seen.arrival?.toISOString()).toBe("2026-10-26T08:00:00.000Z");
     expect(seen.ref).toBe("page-2");
-    expect(result.alternative?.refreshToken).toBe("alt");
-    expect(result.alternative?.legs[0]?.lineName).toBe("RE1");
+    expect(result.alternatives.map((item) => item.refreshToken)).toEqual(["alt"]);
+    expect(result.alternatives[0]?.legs[0]?.lineName).toBe("RE1");
     expect(result.suggestions.map((item) => item.refreshToken)).toEqual(["first", "second"]);
-    expect(result.status).toBe("fits");
-    expect(result.connection?.refreshToken).toBe("alt");
-    expect(todayFromCheck(result)).toEqual({ refreshToken: "alt", serviceDate: "2026-10-26" });
-    expect(checkRow("user-1", "route-1", result).alternative).toMatchObject({ refreshToken: "alt" });
+    expect(result.status).toBe("doesnt-fit");
+    expect(result.reason).toBe("arrival");
+    expect(result.connection?.refreshToken).toBe("first");
+    expect(checkRow("user-1", "route-1", result).alternatives).toMatchObject([{ refreshToken: "alt" }]);
   });
 
   it("does not search further when the first list is empty", async () => {
@@ -682,7 +681,7 @@ describe("alternative", () => {
     expect(calls).toEqual(["journeys"]);
     expect(result.status).toBe("doesnt-fit");
     expect(result.reason).toBe("empty");
-    expect(result.alternative).toBeNull();
+    expect(result.alternatives).toEqual([]);
     expect(result.noAlternative).toBe(false);
   });
 
@@ -703,10 +702,9 @@ describe("alternative", () => {
 
     expect(result.status).toBe("doesnt-fit");
     expect(result.reason).toBe("arrival");
-    expect(result.alternative).toBeNull();
+    expect(result.alternatives).toEqual([]);
     expect(result.noAlternative).toBe(true);
     expect(result.connection?.refreshToken).toBe("first");
-    expect(todayFromCheck(result)).toBeNull();
   });
 
   it("skips a further connection that has too many transfers", async () => {
@@ -748,8 +746,8 @@ describe("alternative", () => {
       client,
     );
 
-    expect(result.alternative?.refreshToken).toBe("direct");
-    expect(result.status).toBe("fits");
+    expect(result.alternatives.map((item) => item.refreshToken)).toEqual(["direct"]);
+    expect(result.status).toBe("doesnt-fit");
   });
 
   it("says there is no alternative when the first page has no further ref", async () => {
@@ -818,7 +816,7 @@ function carriedStand(): CheckResult {
     checkedAt: "2026-10-26T06:00:00.000Z",
     connection: carriedTrip,
     suggestions: [carriedTrip],
-    alternative: null,
+    alternatives: [],
     noAlternative: false,
     searched: true,
     searchFromName: null,
@@ -1016,8 +1014,8 @@ describe("underway", () => {
     const result = await runCheck(route(), new Date("2026-10-26T08:20:00+01:00"), client, carriedStand());
 
     expect(seen.earlierFrom).toBe("griebnitzsee");
-    expect(result.alternative?.refreshToken).toBe("alt");
-    expect(result.status).toBe("fits");
+    expect(result.alternatives.map((item) => item.refreshToken)).toEqual(["alt"]);
+    expect(result.status).toBe("doesnt-fit");
   });
 });
 
@@ -1061,11 +1059,11 @@ describe("serviceDayLabel", () => {
 });
 
 describe("route check access", () => {
-  it("stores the alternative next to the check", () => {
-    const sql = readFileSync("supabase/migrations/20261028170000_route_check_alternative.sql", "utf8");
+  it("stores the alternatives and the nearest connection next to the check", () => {
+    const sql = readFileSync("supabase/migrations/20261031100000_route_check_alternatives.sql", "utf8");
 
-    expect(sql).toContain("alternative jsonb");
-    expect(sql).toContain("no_alternative");
+    expect(sql).toContain("alternatives jsonb");
+    expect(sql).toContain("nearest jsonb");
   });
 
   it("limits a saved check to the signed-in user", () => {
@@ -1281,7 +1279,7 @@ describe("a route that starts with the leave button", () => {
     expect(result.connection?.refreshToken).toBe("chosen");
   });
 
-  it("searches again when the chosen connection is cancelled and offers the next one as the alternative", async () => {
+  it("searches again when the chosen connection is cancelled and offers the next one as an alternative, not as today's", async () => {
     const { client } = seeing([
       [departing("next", "2026-10-26T17:40:00+01:00", "2026-10-26T18:30:00+01:00")],
     ]);
@@ -1296,10 +1294,10 @@ describe("a route that starts with the leave button", () => {
       client,
     );
 
-    expect(result.status).toBe("fits");
-    expect(result.connection?.refreshToken).toBe("next");
-    expect(result.alternative?.refreshToken).toBe("next");
-    expect(todayFromCheck(result)).toEqual({ refreshToken: "next", serviceDate: "2026-10-26" });
+    expect(result.status).toBe("doesnt-fit");
+    expect(result.reason).toBe("cancelled");
+    expect(result.connection?.refreshToken).toBe("chosen");
+    expect(result.alternatives.map((item) => item.refreshToken)).toEqual(["next"]);
   });
 
   it("says it does not fit when the chosen connection is cancelled and nothing else runs", async () => {
@@ -1453,7 +1451,7 @@ describe("avoided lines", () => {
       ["journeys", ["S7"]],
       ["earlier", ["S7"]],
     ]);
-    expect(result.alternative?.refreshToken).toBe("alt");
+    expect(result.alternatives.map((item) => item.refreshToken)).toEqual(["alt"]);
   });
 
   it("keeps them when the person leaves now", async () => {
@@ -1700,5 +1698,279 @@ describe("moreSuggestions", () => {
 
     expect(await moreSuggestions(route({ arrival: "08:00" }), now, failing, current)).toBeNull();
     expect(await moreSuggestions(route({ arrival: "08:00" }), now, recording([]).client, null)).toBeNull();
+  });
+});
+
+describe("the concrete reason", () => {
+  const stand = (legs: Array<Record<string, unknown>>) => {
+    const client = auskunft({ journeys: [journey("a", legs)] });
+    return runCheck(route({ transferMinutes: 4 }), mondayMorning, client);
+  };
+
+  it("names line, leg and time of a cancelled leg", async () => {
+    const result = await stand([
+      ride({
+        origin: { name: "Potsdam Hbf" },
+        destination: { name: "S Griebnitzsee" },
+        departure: "2026-10-26T07:42:00+01:00",
+        arrival: "2026-10-26T08:00:00+01:00",
+        cancelled: true,
+      }),
+    ]);
+
+    const detail = problemDetail(result.connection as Suggestion, route(), result.serviceDate);
+
+    expect(detail).toMatchObject({
+      reason: "cancelled",
+      line: "S7",
+      from: "Potsdam Hbf",
+      to: "S Griebnitzsee",
+      departure: "2026-10-26T07:42:00+01:00",
+    });
+    expect(problemSentence("de", detail!)).toBe("S7 Potsdam Hbf → S Griebnitzsee um 07:42 fällt aus.");
+    expect(problemSentence("en", detail!)).toBe("S7 Potsdam Hbf → S Griebnitzsee at 07:42 is cancelled.");
+  });
+
+  it("names the transfer that is lost and by how many minutes", async () => {
+    const result = await stand([
+      ride({ destination: { name: "S Griebnitzsee" }, arrival: "2026-10-26T08:20:00+01:00" }),
+      ride({
+        origin: { name: "S Griebnitzsee" },
+        departure: "2026-10-26T08:22:00+01:00",
+        arrival: "2026-10-26T08:50:00+01:00",
+        line: { id: "line-s2", name: "S2" },
+      }),
+    ]);
+
+    const detail = problemDetail(result.connection as Suggestion, route({ transferMinutes: 4 }), result.serviceDate);
+
+    expect(result.reason).toBe("transfer");
+    expect(detail).toMatchObject({ reason: "transfer", place: "S Griebnitzsee", gapMinutes: 2, requiredMinutes: 4 });
+    expect(problemSentence("de", detail!)).toBe("Umstieg in S Griebnitzsee: 2 min statt 4 min.");
+    expect(problemSentence("en", detail!)).toBe("Transfer at S Griebnitzsee: 2 min instead of 4 min.");
+  });
+
+  it("says how late the arrival is", async () => {
+    const result = await stand([ride({ arrival: "2026-10-26T09:20:00+01:00" })]);
+    const detail = problemDetail(result.connection as Suggestion, route(), result.serviceDate);
+
+    expect(problemSentence("de", detail!)).toBe("Die Ankunft um 09:20 liegt 20 min nach 09:00.");
+    expect(problemSentence("en", detail!)).toBe("The arrival at 09:20 is 20 min after 09:00.");
+  });
+
+  it("keeps the text of a closed stop or replacement service that belongs to a leg", async () => {
+    const result = await stand([
+      ride({
+        cancelled: true,
+        remarks: [
+          { type: "status", text: "Haltestelle gesperrt, Ersatzverkehr mit Bus." },
+          { type: "hint", text: "Fahrradmitnahme möglich." },
+        ],
+      }),
+    ]);
+
+    const detail = problemDetail(result.connection as Suggestion, route(), result.serviceDate);
+
+    expect(detail?.remarks).toEqual(["Haltestelle gesperrt, Ersatzverkehr mit Bus."]);
+  });
+
+  it("falls back to the general sentence when the auskunft gives no detail", () => {
+    expect(problemSentence("de", { reason: "empty", remarks: [] } as never)).toBe(
+      "Für diese Ankunft gibt es keine Verbindung.",
+    );
+  });
+});
+
+describe("up to three alternatives", () => {
+  const late = (token: string) => journey(token, [ride({ arrival: "2026-10-26T09:20:00+01:00" })]);
+  const early = (token: string, arrival: string, extra: Record<string, unknown> = {}) =>
+    journey(token, [ride({ arrival, ...extra })]);
+
+  function paged(first: RawJourney[], further: RawJourney[]): Auskunft {
+    return {
+      async journeys() {
+        return { journeys: first, realtimeDataUpdatedAt: null, earlierRef: "page-2" };
+      },
+      async earlier() {
+        return { journeys: further, realtimeDataUpdatedAt: null };
+      },
+      async refreshJourney() {
+        throw new Error("unused");
+      },
+    };
+  }
+
+  it("shows at most three, the ones closest to the arrival first, and stays doesnt-fit", async () => {
+    const client = paged(
+      [late("first")],
+      [
+        early("a", "2026-10-26T08:10:00+01:00"),
+        early("b", "2026-10-26T08:50:00+01:00"),
+        early("c", "2026-10-26T08:30:00+01:00"),
+        early("d", "2026-10-26T08:40:00+01:00"),
+      ],
+    );
+
+    const result = await runCheck(route(), mondayMorning, client);
+
+    expect(result.status).toBe("doesnt-fit");
+    expect(result.reason).toBe("arrival");
+    expect(result.alternatives.map((item) => item.refreshToken)).toEqual(["b", "d", "c"]);
+    expect(result.noAlternative).toBe(false);
+    expect(result.nearest ?? null).toBeNull();
+  });
+
+  it("lets the preferred mode and relaxed travel order them as before", async () => {
+    const tram = early("tram", "2026-10-26T08:20:00+01:00", { line: { id: "m1", name: "M1", product: "tram" } });
+    const client = paged([late("first")], [early("s", "2026-10-26T08:50:00+01:00"), tram]);
+
+    const result = await runCheck(route({ preferredMode: "tram" }), mondayMorning, client);
+
+    expect(result.alternatives.map((item) => item.refreshToken)).toEqual(["tram", "s"]);
+  });
+
+  it("describes each one against the original connection", () => {
+    const original = { refreshToken: "o", legs: [viewedLeg({ arrival: "2026-10-26T08:40:00+01:00" })] };
+    const other = {
+      refreshToken: "x",
+      legs: [
+        viewedLeg({ arrival: "2026-10-26T08:30:00+01:00" }),
+        viewedLeg({ departure: "2026-10-26T08:35:00+01:00", arrival: "2026-10-26T08:52:00+01:00" }),
+      ],
+    };
+
+    expect(differenceLabels("de", original, other)).toEqual(["12 min später", "1 Umstieg mehr"]);
+    expect(differenceLabels("en", original, other)).toEqual(["12 min later", "1 more transfer"]);
+    expect(differenceLabels("de", other, original)).toEqual(["12 min früher", "1 Umstieg weniger"]);
+    expect(differenceLabels("de", original, original)).toEqual([]);
+  });
+});
+
+describe("the nearest connection", () => {
+  const late = (token: string, arrival: string, extra: Record<string, unknown> = {}) =>
+    journey(token, [ride({ arrival, ...extra })]);
+
+  function paged(first: RawJourney[], further: RawJourney[]): Auskunft {
+    return {
+      async journeys() {
+        return { journeys: first, realtimeDataUpdatedAt: null, earlierRef: "page-2" };
+      },
+      async earlier() {
+        return { journeys: further, realtimeDataUpdatedAt: null };
+      },
+      async refreshJourney() {
+        throw new Error("unused");
+      },
+    };
+  }
+
+  it("is the connection that misses the arrival by the least, never a cancelled one", async () => {
+    const client = paged(
+      [late("first", "2026-10-26T09:40:00+01:00")],
+      [
+        late("cancelled", "2026-10-26T09:01:00+01:00", { cancelled: true }),
+        late("near", "2026-10-26T09:10:00+01:00"),
+        late("far", "2026-10-26T09:30:00+01:00"),
+      ],
+    );
+
+    const result = await runCheck(route(), mondayMorning, client);
+
+    expect(result.status).toBe("doesnt-fit");
+    expect(result.alternatives).toEqual([]);
+    expect(result.noAlternative).toBe(true);
+    expect(result.nearest?.refreshToken).toBe("near");
+  });
+
+  it("is missing when there is nothing but the connection itself", async () => {
+    const client = paged([late("first", "2026-10-26T09:40:00+01:00")], []);
+
+    const result = await runCheck(route(), mondayMorning, client);
+
+    expect(result.nearest ?? null).toBeNull();
+    expect(result.noAlternative).toBe(true);
+  });
+
+  it("cannot become today's connection", async () => {
+    const client = paged([late("first", "2026-10-26T09:40:00+01:00")], [late("near", "2026-10-26T09:10:00+01:00")]);
+
+    const result = await runCheck(route(), mondayMorning, client);
+
+    expect(checkRow("u", "r", result).nearest).toMatchObject({ refreshToken: "near" });
+    expect(result.suggestions.map((item) => item.refreshToken)).not.toContain("near");
+  });
+});
+
+describe("the leave button with a cancelled ride", () => {
+  const left = new Date("2026-10-26T17:12:00+01:00");
+  const now = new Date("2026-10-26T17:14:00+01:00");
+  const departing = (token: string, departure: string, arrival: string, extra: Record<string, unknown> = {}) =>
+    journey(token, [ride({ departure, arrival, ...extra })]);
+
+  function cancelledClient(next: RawJourney[]): Auskunft {
+    return {
+      async journeys() {
+        return { journeys: next, realtimeDataUpdatedAt: null };
+      },
+      async refreshJourney() {
+        return {
+          journey: departing("chosen", "2026-10-26T17:20:00+01:00", "2026-10-26T18:10:00+01:00", { cancelled: true }),
+          realtimeDataUpdatedAt: null,
+        };
+      },
+    };
+  }
+
+  const leaving = route({
+    arrival: "",
+    leftAt: left.toISOString(),
+    todayRefreshToken: "chosen",
+    todayServiceDate: "2026-10-26",
+  });
+
+  it("gives the reason and the next three departures as alternatives", async () => {
+    const client = cancelledClient([
+      departing("n1", "2026-10-26T17:30:00+01:00", "2026-10-26T18:20:00+01:00"),
+      departing("n2", "2026-10-26T17:40:00+01:00", "2026-10-26T18:30:00+01:00"),
+      departing("n3", "2026-10-26T17:50:00+01:00", "2026-10-26T18:40:00+01:00"),
+      departing("n4", "2026-10-26T18:00:00+01:00", "2026-10-26T18:50:00+01:00"),
+    ]);
+
+    const result = await runCheck(leaving, now, client);
+
+    expect(result.status).toBe("doesnt-fit");
+    expect(result.reason).toBe("cancelled");
+    expect(result.connection?.refreshToken).toBe("chosen");
+    expect(result.alternatives.map((item) => item.refreshToken)).toEqual(["n1", "n2", "n3"]);
+  });
+});
+
+describe("choosing an alternative", () => {
+  it("is the only way an alternative becomes today's connection", async () => {
+    const late = journey("first", [ride({ arrival: "2026-10-26T09:20:00+01:00" })]);
+    const client: Auskunft = {
+      async journeys() {
+        return { journeys: [late], realtimeDataUpdatedAt: null, earlierRef: "page-2" };
+      },
+      async earlier() {
+        return { journeys: [onTime("alt")], realtimeDataUpdatedAt: null };
+      },
+      async refreshJourney() {
+        return { journey: onTime("alt"), realtimeDataUpdatedAt: null };
+      },
+    };
+
+    const before = await runCheck(route(), mondayMorning, client);
+    expect(before.status).toBe("doesnt-fit");
+
+    const after = await runCheck(
+      route({ todayRefreshToken: "alt", todayServiceDate: "2026-10-26" }),
+      mondayMorning,
+      client,
+      before,
+    );
+
+    expect(after.status).toBe("fits");
+    expect(after.connection?.refreshToken).toBe("alt");
   });
 });

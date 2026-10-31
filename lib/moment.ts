@@ -18,7 +18,7 @@ type GlanceCheck = {
   status: CheckStatus;
   connection: Suggestion | null;
   suggestions: Suggestion[];
-  alternative: Suggestion | null;
+  alternatives: Suggestion[];
 };
 
 export function tripMoment(
@@ -48,7 +48,7 @@ export function countedTrip(
   route: { todayRefreshToken: string | null; todayServiceDate: string | null },
   check: GlanceCheck,
 ): Suggestion | null {
-  const pool = [check.connection, check.alternative, ...check.suggestions].filter(
+  const pool = [check.connection, ...check.alternatives, ...check.suggestions].filter(
     (item): item is Suggestion => Boolean(item && item.legs.length > 0),
   );
   if (route.todayRefreshToken && route.todayServiceDate === check.serviceDate) {

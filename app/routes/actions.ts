@@ -5,7 +5,6 @@ import {
   checkRow,
   moreSuggestions,
   runCheck,
-  todayFromCheck,
   type CheckResult,
   type CheckStatus,
   type Suggestion,
@@ -193,7 +192,7 @@ export async function listGlances(routes: StoredRoute[], now = new Date()): Prom
 
   const { data, error } = await supabase
     .from("route_checks")
-    .select("route_id, service_date, status, connection, suggestions, alternative")
+    .select("route_id, service_date, status, connection, suggestions, alternatives")
     .order("checked_at", { ascending: false });
 
   if (error || !data) return {};
@@ -214,7 +213,7 @@ export async function listGlances(routes: StoredRoute[], now = new Date()): Prom
         status: row.status,
         connection: (row.connection ?? null) as Suggestion | null,
         suggestions: (row.suggestions ?? []) as Suggestion[],
-        alternative: (row.alternative ?? null) as Suggestion | null,
+        alternatives: (row.alternatives ?? []) as Suggestion[],
       },
       now,
     );
@@ -259,9 +258,7 @@ async function performCheck(userId: string, route: StoredRoute): Promise<"skippe
   if (!result.searched) return "skipped";
 
   const saved = await saveCheck(userId, route.id, result);
-  const today = todayFromCheck(result);
-  const remembered = today ? await rememberToday(route.id, today.refreshToken, today.serviceDate) : true;
-  return saved && remembered ? "saved" : "failed";
+  return saved ? "saved" : "failed";
 }
 
 export async function checkRoute(formData: FormData) {
@@ -334,10 +331,23 @@ export async function chooseConnection(formData: FormData) {
   const supabase = await createClient();
   if (!supabase || !refreshToken || !serviceDate) redirect(`/routes/${id}`);
 
+  const current = await latestCheck(id);
+  // The nearest connection does not fit, so it can never become today's connection.
+  if (current?.nearest?.refreshToken === refreshToken) redirect(`/routes/${id}`);
+
   await supabase
     .from("routes")
     .update({ today_refresh_token: refreshToken, today_service_date: serviceDate })
     .eq("id", id);
+
+  // An alternative takes over only by this choice: read it again so the stand follows it.
+  if (current?.alternatives.some((item) => item.refreshToken === refreshToken)) {
+    const { routes } = await listRoutes();
+    const route = routes.find((item) => item.id === id);
+    if (route) {
+      await performCheck(user.id, { ...route, todayRefreshToken: refreshToken, todayServiceDate: serviceDate });
+    }
+  }
   redirect(`/routes/${id}`);
 }
 
@@ -380,7 +390,7 @@ export async function latestCheck(routeId: string): Promise<CheckResult | null> 
   const { data, error } = await supabase
     .from("route_checks")
     .select(
-      "service_date, status, reason, checked_at, connection, suggestions, alternative, no_alternative, search_from_name, failed_at",
+      "service_date, status, reason, checked_at, connection, suggestions, alternatives, nearest, no_alternative, search_from_name, failed_at",
     )
     .eq("route_id", routeId)
     .order("checked_at", { ascending: false })
@@ -396,7 +406,8 @@ export async function latestCheck(routeId: string): Promise<CheckResult | null> 
     checkedAt: data.checked_at,
     connection: (data.connection ?? null) as Suggestion | null,
     suggestions: (data.suggestions ?? []) as Suggestion[],
-    alternative: (data.alternative ?? null) as Suggestion | null,
+    alternatives: (data.alternatives ?? []) as Suggestion[],
+    nearest: (data.nearest ?? null) as Suggestion | null,
     noAlternative: Boolean(data.no_alternative),
     searched: true,
     searchFromName: data.search_from_name,
@@ -451,8 +462,6 @@ export async function checkIfDue(routeIds: string[]): Promise<number> {
     if (!result.searched) continue;
     if (!(await saveCheck(user.id, route.id, result))) continue;
 
-    const today = todayFromCheck(result);
-    if (today) await rememberToday(route.id, today.refreshToken, today.serviceDate);
     written += 1;
   }
 

@@ -2,7 +2,7 @@ import { checkRoute, chooseConnection, clearConnection, leaveRoute, loadMoreSugg
 import { ConnectionBar, ModeChip } from "@/components/connection-bar";
 import { StatusPill, TripProgress } from "@/components/trip-progress";
 import { Button } from "@/components/ui/button";
-import { maximumSuggestions, type CheckResult, type LegView, type Suggestion } from "@/lib/check";
+import { maximumSuggestions, problemDetail, type CheckResult, type LegView, type Suggestion } from "@/lib/check";
 import { usesMode } from "@/lib/mode";
 import { countedTrip, tripMoment, upcomingLabel } from "@/lib/moment";
 import {
@@ -11,10 +11,12 @@ import {
   clockLabel,
   connectionSummary,
   delayLabel,
+  differenceLabels,
   failedLabel,
   ageLabel,
   leftAtLabel,
   noPreferredLabel,
+  problemSentence,
   serviceDayLabel,
   transferGapMinutes,
 } from "@/lib/check-copy";
@@ -111,6 +113,59 @@ function SuggestionHead({ language, suggestion }: { language: Language; suggesti
   );
 }
 
+export type RouteLimits = {
+  arrival: string;
+  transferMinutes: number | null;
+  maxTransfers: number | null;
+  avoidLines: string[];
+};
+
+const noLimits: RouteLimits = { arrival: "", transferMinutes: null, maxTransfers: null, avoidLines: [] };
+
+function ProblemText({
+  language,
+  suggestion,
+  reason,
+  limits,
+  serviceDate,
+}: {
+  language: Language;
+  suggestion: Suggestion | null;
+  reason: CheckResult["reason"];
+  limits: RouteLimits;
+  serviceDate: string;
+}) {
+  const detail = suggestion ? problemDetail(suggestion, limits, serviceDate) : null;
+  const usable = detail && (!reason || detail.reason === reason) ? detail : null;
+  const sentence = usable ? problemSentence(language, usable) : reason ? checkCopy(language).reason[reason] : null;
+  if (!sentence) return null;
+  return (
+    <>
+      <p className="font-medium">{sentence}</p>
+      {usable?.remarks.map((remark) => (
+        <p key={remark} className="text-sm text-muted-foreground">
+          {remark}
+        </p>
+      ))}
+    </>
+  );
+}
+
+function NearestReason({
+  language,
+  suggestion,
+  limits,
+  serviceDate,
+}: {
+  language: Language;
+  suggestion: Suggestion;
+  limits: RouteLimits;
+  serviceDate: string;
+}) {
+  const detail = problemDetail(suggestion, limits, serviceDate);
+  return <>{detail ? problemSentence(language, detail) : null}</>;
+}
+
 export function RouteCheck({
   language,
   routeId,
@@ -122,6 +177,7 @@ export function RouteCheck({
   leftAt = null,
   preferredMode = null,
   avoidLines = [],
+  limits = noLimits,
 }: {
   language: Language;
   routeId: string;
@@ -133,6 +189,7 @@ export function RouteCheck({
   leftAt?: string | null;
   preferredMode?: string | null;
   avoidLines?: string[];
+  limits?: RouteLimits;
 }) {
   const text = checkCopy(language);
   const trip = check
@@ -193,7 +250,13 @@ export function RouteCheck({
 
         {check ? (
           <>
-            {check.reason ? <p className="font-medium">{text.reason[check.reason]}</p> : null}
+            <ProblemText
+              language={language}
+              suggestion={check.connection}
+              reason={check.reason}
+              limits={limits}
+              serviceDate={check.serviceDate}
+            />
             {preferredMode && trip && check.status === "fits" && !usesMode(trip.legs, preferredMode) ? (
               <p className="text-sm text-muted-foreground">{noPreferredLabel(language, preferredMode)}</p>
             ) : null}
@@ -233,13 +296,60 @@ export function RouteCheck({
       {check ? (
         <>
           {check.noAlternative ? <p className="text-sm text-muted-foreground">{text.noAlternative}</p> : null}
-          {check.alternative ? (
-            <div className="flex flex-col gap-3 rounded-2xl border border-unclear/50 bg-card p-4 text-sm shadow-xs ring-1 ring-unclear/20 md:p-5">
-              <h3 className="text-xs font-semibold tracking-widest text-unclear uppercase">{text.alternative}</h3>
-              {check.alternative.refreshToken === chosenToken ? chosenBadge : null}
-              <SuggestionHead language={language} suggestion={check.alternative} />
-              <ConnectionBar language={language} legs={check.alternative.legs} />
-              <SuggestionLegs suggestion={check.alternative} summary={text.legsSummary} {...legs} />
+          {check.alternatives.length > 0 ? (
+            <h3 className="pt-2 text-base font-semibold tracking-tight">{text.alternatives}</h3>
+          ) : null}
+          {check.alternatives.map((alternative) => {
+            const chosen = alternative.refreshToken === chosenToken;
+            const differences = differenceLabels(language, check.connection, alternative);
+            return (
+              <div
+                key={alternative.refreshToken}
+                className={`flex flex-col gap-3 rounded-2xl border bg-card p-4 text-sm shadow-xs md:p-5 ${
+                  chosen ? "border-signal/50 ring-1 ring-signal/20" : "border-unclear/50 ring-1 ring-unclear/20"
+                }`}
+              >
+                {chosen ? chosenBadge : null}
+                <SuggestionHead language={language} suggestion={alternative} />
+                {differences.length > 0 ? (
+                  <p className="flex flex-wrap gap-2 text-xs font-medium text-unclear">
+                    {differences.map((difference) => (
+                      <span key={difference} className="rounded-full bg-unclear/10 px-2 py-0.5">
+                        {difference}
+                      </span>
+                    ))}
+                  </p>
+                ) : null}
+                <ConnectionBar language={language} legs={alternative.legs} />
+                <SuggestionLegs suggestion={alternative} summary={text.legsSummary} {...legs} />
+                {!chosen && alternative.refreshToken ? (
+                  <form action={chooseConnection}>
+                    <input type="hidden" name="id" value={routeId} />
+                    <input type="hidden" name="refreshToken" value={alternative.refreshToken} />
+                    <input type="hidden" name="serviceDate" value={check.serviceDate} />
+                    <Button type="submit" size="sm" variant="outline">
+                      {text.choose}
+                    </Button>
+                  </form>
+                ) : null}
+              </div>
+            );
+          })}
+          {check.nearest ? (
+            <div className="flex flex-col gap-3 rounded-2xl border border-miss/40 bg-card p-4 text-sm shadow-xs md:p-5">
+              <h3 className="text-xs font-semibold tracking-widest text-miss uppercase">{text.nearest}</h3>
+              <SuggestionHead language={language} suggestion={check.nearest} />
+              <p className="font-medium text-miss">
+                {text.nearestNote}{" "}
+                <NearestReason
+                  language={language}
+                  suggestion={check.nearest}
+                  limits={limits}
+                  serviceDate={check.serviceDate}
+                />
+              </p>
+              <ConnectionBar language={language} legs={check.nearest.legs} />
+              <SuggestionLegs suggestion={check.nearest} summary={text.legsSummary} {...legs} />
             </div>
           ) : null}
           {check.suggestions.length > 0 ? (

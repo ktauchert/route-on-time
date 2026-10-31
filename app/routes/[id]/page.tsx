@@ -59,6 +59,12 @@ async function EditRoute({
           leave={!route.arrival}
           preferredMode={route.preferredMode}
           avoidLines={route.avoidLines}
+          limits={{
+            arrival: route.arrival,
+            transferMinutes: route.transferMinutes,
+            maxTransfers: route.maxTransfers,
+            avoidLines: route.avoidLines,
+          }}
           leftAt={
             route.leftAt && berlinDateString(new Date(route.leftAt)) === berlinDateString(new Date())
               ? route.leftAt

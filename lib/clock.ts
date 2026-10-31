@@ -51,7 +51,7 @@ function countedConnection(route: ClockRoute, now: Date): Suggestion | null {
 
   const token = route.route.todayRefreshToken;
   if (token && route.route.todayServiceDate === berlinDateString(now)) {
-    const chosen = [today.connection, today.alternative, ...today.suggestions].find(
+    const chosen = [today.connection, ...today.alternatives, ...today.suggestions].find(
       (item) => item?.refreshToken === token,
     );
     return chosen ?? null;

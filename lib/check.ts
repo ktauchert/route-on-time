@@ -16,6 +16,7 @@ export type CheckReason =
 
 export type RawLeg = {
   walking?: boolean;
+  remarks?: Array<{ type?: string; text?: string; summary?: string }>;
   cancelled?: boolean;
   line?: { id?: string; name?: string; product?: string } | null;
   origin?: { id?: string; name?: string } | null;
@@ -52,6 +53,7 @@ export type LegView = {
   departureDelaySeconds: number | null;
   arrivalDelaySeconds: number | null;
   cancelled: boolean;
+  remarks?: string[];
   stopovers: Array<{ id: string | null; name: string; departure: string; arrival: string }>;
 };
 
@@ -67,7 +69,8 @@ export type CheckResult = {
   checkedAt: string;
   connection: Suggestion | null;
   suggestions: Suggestion[];
-  alternative: Suggestion | null;
+  alternatives: Suggestion[];
+  nearest?: Suggestion | null;
   noAlternative: boolean;
   searched: boolean;
   searchFromName: string | null;
@@ -182,7 +185,19 @@ export function searchDay(days: readonly Weekday[], arrival: string, now: Date) 
   return today;
 }
 
+const shownRemarkTypes = new Set(["status", "warning"]);
+
+// Only a status or warning text counts: it says why a leg is closed or replaced. Hints stay out.
+function remarksOf(raw: RawLeg) {
+  const texts = (raw.remarks ?? [])
+    .filter((remark) => shownRemarkTypes.has(remark.type ?? ""))
+    .map((remark) => (remark.text || remark.summary || "").trim())
+    .filter(Boolean);
+  return [...new Set(texts)];
+}
+
 function mapLeg(raw: RawLeg): LegView {
+  const remarks = remarksOf(raw);
   return {
     walking: Boolean(raw.walking),
     lineId: raw.line?.id ?? null,
@@ -197,6 +212,7 @@ function mapLeg(raw: RawLeg): LegView {
     departureDelaySeconds: raw.departureDelay ?? null,
     arrivalDelaySeconds: raw.arrivalDelay ?? null,
     cancelled: Boolean(raw.cancelled),
+    ...(remarks.length > 0 ? { remarks } : {}),
     stopovers: (raw.stopovers ?? [])
       .map((stop) => ({
         id: stop.stop?.id ?? null,
@@ -275,13 +291,15 @@ function lineKey(name: string | null | undefined) {
   return (name ?? "").replace(/\s+/g, "").toUpperCase();
 }
 
-function usesAvoidedLine(suggestion: Suggestion, route: RouteToCheck) {
+type Limits = Pick<RouteToCheck, "arrival" | "transferMinutes" | "maxTransfers" | "avoidLines">;
+
+function usesAvoidedLine(suggestion: Suggestion, route: Limits) {
   const avoided = new Set((route.avoidLines ?? []).map(lineKey).filter(Boolean));
   if (avoided.size === 0) return false;
   return rideLegs(suggestion).some((leg) => avoided.has(lineKey(leg.lineName)));
 }
 
-function problemOf(suggestion: Suggestion, route: RouteToCheck, serviceDate: string): CheckReason | null {
+function problemOf(suggestion: Suggestion, route: Limits, serviceDate: string): CheckReason | null {
   if (suggestion.legs.some((leg) => leg.cancelled)) return "cancelled";
   if (usesAvoidedLine(suggestion, route)) return "avoided";
 
@@ -307,6 +325,100 @@ function problemOf(suggestion: Suggestion, route: RouteToCheck, serviceDate: str
   }
 
   return null;
+}
+
+export type ProblemDetail = {
+  reason: CheckReason;
+  line: string | null;
+  from: string | null;
+  to: string | null;
+  departure: string | null;
+  place: string | null;
+  gapMinutes: number | null;
+  requiredMinutes: number | null;
+  arrival: string | null;
+  deadline: string | null;
+  minutesLate: number | null;
+  transfers: number | null;
+  maxTransfers: number | null;
+  remarks: string[];
+};
+
+// Reads the concrete cause out of the legs of a connection, so nothing extra has to be stored.
+export function problemDetail(suggestion: Suggestion, route: Limits, serviceDate: string): ProblemDetail | null {
+  const reason = problemOf(suggestion, route, serviceDate);
+  if (!reason) return null;
+
+  const detail: ProblemDetail = {
+    reason,
+    line: null,
+    from: null,
+    to: null,
+    departure: null,
+    place: null,
+    gapMinutes: null,
+    requiredMinutes: null,
+    arrival: null,
+    deadline: null,
+    minutesLate: null,
+    transfers: null,
+    maxTransfers: null,
+    remarks: [...new Set(suggestion.legs.flatMap((leg) => leg.remarks ?? []))],
+  };
+
+  if (reason === "cancelled") {
+    const leg = suggestion.legs.find((item) => item.cancelled);
+    return {
+      ...detail,
+      line: leg?.lineName ?? null,
+      from: leg?.originName || null,
+      to: leg?.destinationName || null,
+      departure: leg?.departure || null,
+    };
+  }
+
+  if (reason === "avoided") {
+    const avoided = new Set((route.avoidLines ?? []).map(lineKey));
+    const leg = rideLegs(suggestion).find((item) => avoided.has(lineKey(item.lineName)));
+    return { ...detail, line: leg?.lineName ?? null };
+  }
+
+  if (reason === "arrival") {
+    const arrival = suggestion.legs[suggestion.legs.length - 1]?.arrival ?? "";
+    const late = arrival ? new Date(arrival).getTime() - berlinInstant(serviceDate, route.arrival).getTime() : null;
+    return {
+      ...detail,
+      arrival: arrival || null,
+      deadline: route.arrival || null,
+      minutesLate: late == null ? null : Math.round(late / 60000),
+    };
+  }
+
+  if (reason === "transfer") {
+    const rides = rideLegs(suggestion);
+    for (let index = 1; index < rides.length; index += 1) {
+      const previous = rides[index - 1];
+      const current = rides[index];
+      const gap =
+        previous?.arrival && current?.departure
+          ? Math.round((new Date(current.departure).getTime() - new Date(previous.arrival).getTime()) / 60000)
+          : null;
+      if (gap == null || gap < (route.transferMinutes ?? 0)) {
+        return {
+          ...detail,
+          place: current?.originName || null,
+          gapMinutes: gap,
+          requiredMinutes: route.transferMinutes,
+        };
+      }
+    }
+  }
+
+  if (reason === "transfers") {
+    return { ...detail, transfers: transfersOf(suggestion), maxTransfers: route.maxTransfers };
+  }
+
+  return detail;
 }
 
 function isStale(departure: string, realtimeUpdatedAt: number | null, now: Date) {
@@ -415,7 +527,7 @@ function judge(
       reason: "empty",
       connection: null,
       suggestions: [],
-      alternative: null,
+      alternatives: [],
       noAlternative: false,
       searched: true,
       searchFromName: null,
@@ -438,7 +550,7 @@ function judge(
       reason: "stale",
       connection,
       suggestions,
-      alternative: null,
+      alternatives: [],
       noAlternative: false,
       searched: true,
       searchFromName: null,
@@ -453,7 +565,7 @@ function judge(
     reason,
     connection,
     suggestions,
-    alternative: null,
+    alternatives: [],
     noAlternative: false,
     searched: true,
     searchFromName: null,
@@ -468,11 +580,51 @@ function unanswered(serviceDate: string, checkedAt: string): CheckResult {
     reason: "no-answer",
     connection: null,
     suggestions: [],
-    alternative: null,
+    alternatives: [],
     noAlternative: false,
     searched: true,
     searchFromName: null,
   };
+}
+
+export const maximumAlternatives = 3;
+
+function pickAlternatives(fitting: Suggestion[], route: RouteToCheck) {
+  const rest = [...fitting];
+  const picked: Suggestion[] = [];
+  while (picked.length < maximumAlternatives) {
+    const next = pickFitting(rest, route);
+    if (!next) break;
+    picked.push(next);
+    rest.splice(rest.indexOf(next), 1);
+  }
+  return picked;
+}
+
+// The connection that misses the requirement by the least. A cancelled one never runs, so it never counts.
+function nearestOf(
+  candidates: Suggestion[],
+  exclude: Suggestion | null,
+  route: RouteToCheck,
+  serviceDate: string,
+): Suggestion | null {
+  const deadline = route.arrival ? berlinInstant(serviceDate, route.arrival).getTime() : 0;
+  const miss = (suggestion: Suggestion) =>
+    route.arrival ? Math.max(0, endOf(suggestion) - deadline) : endOf(suggestion);
+  const ranked = candidates
+    .filter((item) => item.refreshToken && item.refreshToken !== exclude?.refreshToken)
+    .filter((item) => !item.legs.some((leg) => leg.cancelled))
+    .sort((a, b) => miss(a) - miss(b) || endOf(a) - endOf(b));
+  return ranked[0] ?? null;
+}
+
+function withoutAlternative(
+  result: CheckResult,
+  more: Suggestion[],
+  route: RouteToCheck,
+): CheckResult {
+  const nearest = nearestOf([...result.suggestions, ...more], result.connection, route, result.serviceDate);
+  return { ...result, alternatives: [], nearest, noAlternative: true };
 }
 
 async function withAlternative(
@@ -484,50 +636,61 @@ async function withAlternative(
   earlierRef: string | null | undefined,
 ): Promise<CheckResult> {
   if (result.status !== "doesnt-fit" || result.suggestions.length === 0) {
-    return { ...result, alternative: null, noAlternative: false };
+    return { ...result, alternatives: [], noAlternative: false };
   }
 
-  if (!earlierRef || !auskunft.earlier) {
-    return { ...result, alternative: null, noAlternative: true };
-  }
+  if (!earlierRef || !auskunft.earlier) return withoutAlternative(result, [], route);
 
   let page: JourneyPage;
   try {
     page = await auskunft.earlier(fromId, route.destinationId, earlierRef, avoidOf(route));
   } catch {
-    return { ...result, alternative: null, noAlternative: true };
+    return withoutAlternative(result, [], route);
   }
 
   const seen = new Set(result.suggestions.map((item) => item.refreshToken).filter(Boolean));
-  const alternative = page.journeys
+  const fresh = page.journeys
     .map(toSuggestion)
-    .filter((item): item is Suggestion => item !== null)
-    .find((item) => {
-      if (!item.refreshToken || seen.has(item.refreshToken)) return false;
-      if (problemOf(item, route, result.serviceDate) !== null) return false;
-      const departure = item.legs[0]?.departure ?? "";
-      return !isStale(departure, page.realtimeDataUpdatedAt, now);
-    });
+    .filter((item): item is Suggestion => item !== null && Boolean(item.refreshToken) && !seen.has(item.refreshToken));
+  const fitting = fresh.filter((item) => {
+    if (problemOf(item, route, result.serviceDate) !== null) return false;
+    const departure = item.legs[0]?.departure ?? "";
+    return !isStale(departure, page.realtimeDataUpdatedAt, now);
+  });
 
-  if (!alternative) return { ...result, alternative: null, noAlternative: true };
+  const alternatives = pickAlternatives(fitting, route);
+  if (alternatives.length === 0) return withoutAlternative(result, fresh, route);
 
-  return {
-    ...result,
-    status: "fits",
-    reason: null,
-    connection: alternative,
-    alternative,
-    noAlternative: false,
-  };
+  return { ...result, alternatives, nearest: null, noAlternative: false };
 }
 
-function afterLeaveSearch(judged: CheckResult, chosen: string | null): CheckResult {
-  if (judged.status === "doesnt-fit") return { ...judged, noAlternative: Boolean(chosen) };
-  const next = judged.connection;
-  if (chosen && judged.status === "fits" && next && next.refreshToken !== chosen) {
-    return { ...judged, alternative: next };
+// The chosen ride is gone. Its reason stays, and the next fitting departures are offered, none of them taken.
+function afterLeaveSearch(
+  judged: CheckResult,
+  chosen: string | null,
+  broken: Suggestion | null,
+  route: RouteToCheck,
+): CheckResult {
+  if (!broken || judged.status === "unclear" || judged.reason === "empty") {
+    return judged.status === "doesnt-fit" ? { ...judged, noAlternative: Boolean(chosen) } : judged;
   }
-  return judged;
+
+  const others = judged.suggestions.filter((item) => item.refreshToken !== broken.refreshToken);
+  const alternatives = pickAlternatives(
+    others.filter((item) => problemOf(item, route, judged.serviceDate) === null),
+    route,
+  );
+  const reason = problemOf(broken, route, judged.serviceDate) ?? "cancelled";
+  return {
+    ...judged,
+    status: "doesnt-fit",
+    reason,
+    connection: broken,
+    suggestions: others.filter((item) => !alternatives.includes(item)),
+    alternatives,
+    nearest: alternatives.length > 0 ? null : nearestOf(others, broken, route, judged.serviceDate),
+    noAlternative: alternatives.length === 0,
+  };
 }
 
 function keptStand(previous: CheckResult): CheckResult {
@@ -590,9 +753,11 @@ async function judgeRoute(
 
     const position = located ? travelPosition(located, now) : { kind: "before" as const };
     if (position.kind === "done" && sameDay) return keptStand(sameDay);
+    let broken: Suggestion | null = null;
     if (chosen && refreshed && position.kind === "before") {
       const judgedChosen = judge([refreshed], realtime, route, serviceDate, now, checkedAt);
       if (!leave || judgedChosen.status !== "doesnt-fit") return judgedChosen;
+      broken = toSuggestion(refreshed);
     }
 
     const moved = position.kind === "next-stop" || position.kind === "transfer";
@@ -603,7 +768,7 @@ async function judgeRoute(
       : await auskunft.journeys(fromId, route.destinationId, berlinInstant(serviceDate, route.arrival), "arrival", avoidOf(route));
     const judged = judge(found.journeys, found.realtimeDataUpdatedAt, route, serviceDate, now, checkedAt);
     const checked = leave
-      ? afterLeaveSearch(judged, chosen)
+      ? afterLeaveSearch(judged, chosen, broken, route)
       : await withAlternative(route, now, auskunft, judged, fromId, found.earlierRef);
     const connection = moved && located ? located : checked.connection;
     return { ...checked, connection, searched: true, searchFromName: fromName };
@@ -670,15 +835,10 @@ export function checkRow(userId: string, routeId: string, result: CheckResult) {
     checked_at: result.checkedAt,
     connection: result.connection,
     suggestions: result.suggestions,
-    alternative: result.alternative,
+    alternatives: result.alternatives,
+    nearest: result.nearest ?? null,
     no_alternative: result.noAlternative,
     search_from_name: result.searchFromName,
     failed_at: result.failedAt ?? null,
   };
-}
-
-export function todayFromCheck(result: CheckResult) {
-  const refreshToken = result.alternative?.refreshToken;
-  if (!refreshToken) return null;
-  return { refreshToken, serviceDate: result.serviceDate };
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   chooseBaseMap,
+  labelsIn,
   positionAt,
   rasterLine,
   routeSegments,
@@ -223,5 +224,29 @@ describe("positionAt", () => {
 
   it("is null without coordinates", () => {
     expect(positionAt({ refreshToken: "b", legs: [leg({ originPoint: undefined, destinationPoint: undefined })] }, new Date(), region)).toBeNull();
+  });
+});
+
+describe("labelsIn", () => {
+  const labelled: BaseMap = {
+    ...region,
+    labels: [
+      { name: "Potsdam", point: [13.06, 52.4], kind: "place" },
+      { name: "Fernsehturm", point: [13.41, 52.52], kind: "landmark" },
+      { name: "Bernau", point: [13.59, 52.68], kind: "place" },
+    ],
+  };
+
+  it("keeps the labels that lie inside the visible part, with their cell", () => {
+    const box = { x: 0, y: 0, width: 120, height: 75 };
+
+    const names = labelsIn(box, labelled).map((label) => label.name);
+
+    expect(names).toEqual(["Potsdam"]);
+    expect(labelsIn(box, labelled)[0]!.cell).toEqual(toCell([13.06, 52.4], labelled));
+  });
+
+  it("is empty for a map without labels", () => {
+    expect(labelsIn({ x: 0, y: 0, width: 200, height: 100 }, region)).toEqual([]);
   });
 });

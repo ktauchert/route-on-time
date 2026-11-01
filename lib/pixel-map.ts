@@ -2,7 +2,11 @@ import type { LegView, MapPoint, Suggestion } from "./check";
 import { transferGapMinutes } from "./check-copy";
 import { modeOf, type Mode } from "./mode";
 
-// A base map is a character grid: "." land, "~" water, "#" border or ring.
+export type MapLabel = { name: string; point: MapPoint; kind: "place" | "landmark" };
+
+// A base map is a character grid, one glyph per cell:
+// "." land outside Berlin, "," land inside Berlin, "u" built-up, "g" green, "~" water,
+// "s" S-Bahn track, "r" motorway, "#" border of Berlin.
 export type BaseMap = {
   id: "city" | "region";
   west: number;
@@ -12,6 +16,7 @@ export type BaseMap = {
   cols: number;
   rows: number;
   grid: string[];
+  labels?: MapLabel[];
 };
 
 export type Cell = { x: number; y: number };
@@ -87,8 +92,8 @@ export function rasterLine(from: Cell, to: Cell): Cell[] {
   }
 }
 
-const padding = 6;
-const minimumWidth = 48;
+const padding = 12;
+const minimumWidth = 96;
 const aspect = 4 / 3;
 
 // The visible part of the base map: the route with some air around it, at a fixed 4:3 shape.
@@ -114,6 +119,15 @@ export function viewBoxFor(cells: Cell[], map: BaseMap): ViewBox {
     width,
     height,
   };
+}
+
+// The names that fall into the visible part of the map.
+export function labelsIn(box: ViewBox, map: BaseMap): Array<MapLabel & { cell: Cell }> {
+  return (map.labels ?? [])
+    .map((label) => ({ ...label, cell: toCell(label.point, map) }))
+    .filter(
+      ({ cell }) => cell.x >= box.x && cell.x < box.x + box.width && cell.y >= box.y && cell.y < box.y + box.height,
+    );
 }
 
 function samePlace(a: { id: string | null; name: string }, b: { id: string | null; name: string }) {

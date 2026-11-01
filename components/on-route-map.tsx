@@ -6,6 +6,7 @@ import { clockLabel, delayLabel } from "@/lib/check-copy";
 import { onRouteCopy, transferLabel, walkLabel } from "@/lib/on-route-copy";
 import {
   chooseBaseMap,
+  labelsIn,
   positionAt,
   routeSegments,
   stationsOf,
@@ -15,10 +16,19 @@ import {
 } from "@/lib/pixel-map";
 import type { Language } from "@/lib/preferences";
 
+// One class per glyph of the base map. "." is the land outside Berlin and shows the background.
 const glyphs: Record<string, string> = {
-  "~": "fill-signal/30",
-  "#": "fill-foreground/25",
+  ",": "fill-card",
+  u: "fill-foreground/10",
+  g: "fill-fits/35",
+  "~": "fill-signal/40",
+  s: "fill-foreground/20",
+  S: "fill-fits/70",
+  r: "fill-unclear/60",
+  "#": "fill-foreground/45",
 };
+
+const maximumLabels = 8;
 
 // Runs of the same glyph in a row become one rectangle, which keeps the SVG small.
 function baseRects(map: BaseMap, box: { x: number; y: number; width: number; height: number }) {
@@ -126,21 +136,24 @@ export function OnRouteMap({
     const stations = stationsOf(trip, map);
     const cells = [...segments.flatMap((segment) => segment.cells), ...stations.map((station) => station.cell)];
     const box = viewBoxFor(cells, map);
-    return { map, segments, stations, box, rects: baseRects(map, box) };
+    const names = labelsIn(box, map)
+      .sort((a, b) => Number(b.kind === "landmark") - Number(a.kind === "landmark"))
+      .slice(0, maximumLabels);
+    return { map, segments, stations, box, names, rects: baseRects(map, box) };
   }, [trip, maps]);
 
   if (!drawn) {
     return <p className="p-4 text-center text-sm text-muted-foreground">{text.noMap}</p>;
   }
 
-  const { map, segments, stations, box, rects } = drawn;
+  const { map, segments, stations, box, names, rects } = drawn;
   const here = positionAt(trip, now, map);
   const percentX = (x: number) => `${((x + 0.5 - box.x) / box.width) * 100}%`;
   const percentY = (y: number) => `${((y + 0.5 - box.y) / box.height) * 100}%`;
   const open = stations.find((station) => station.key === selected) ?? null;
 
   return (
-    <div className="relative mx-auto aspect-[4/3] w-full max-h-full max-w-3xl overflow-hidden rounded-xl border bg-muted/40">
+    <div className="relative mx-auto aspect-[4/3] w-full max-h-full max-w-3xl overflow-hidden rounded-xl border bg-muted/70">
       <svg
         role="img"
         aria-label={text.map}
@@ -157,10 +170,10 @@ export function OnRouteMap({
           segment.cells.map((cell, position) => (
             <rect
               key={`${index}-${position}`}
-              x={cell.x}
-              y={cell.y}
-              width={1}
-              height={1}
+              x={cell.x - 0.5}
+              y={cell.y - 0.5}
+              width={2}
+              height={2}
               data-mode={segment.mode ?? undefined}
               className={segment.mode ? "mode-fill" : "fill-muted-foreground/60"}
               style={segment.mode ? { fill: "var(--mode-color, var(--mode-other))" } : undefined}
@@ -168,6 +181,20 @@ export function OnRouteMap({
           )),
         )}
       </svg>
+
+      {names.map((label) => (
+        <span
+          key={label.name}
+          aria-hidden
+          style={{ left: percentX(label.cell.x), top: percentY(label.cell.y) }}
+          className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 font-pixel text-[9px] leading-none whitespace-nowrap text-foreground/60 ${
+            label.kind === "landmark" ? "text-foreground/80" : ""
+          }`}
+        >
+          {label.kind === "landmark" ? "◆ " : ""}
+          {label.name}
+        </span>
+      ))}
 
       {stations.map((station) => (
         <button

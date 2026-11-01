@@ -12,7 +12,7 @@ describe("SignedIn", () => {
     render(<SignedIn language="de" />);
 
     expect(screen.getByRole("navigation")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Routen" }).getAttribute("href")).toBe("/routes");
+    expect(screen.getByRole("link", { name: "Routen" }).getAttribute("href")).toBe("/routes?all=1");
     expect(screen.getByRole("link", { name: "Einstellungen" }).getAttribute("href")).toBe(
       "/settings",
     );

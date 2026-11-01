@@ -5,6 +5,7 @@ import { SettingsForm } from "@/components/settings-form";
 import { SignedIn } from "@/components/signed-in";
 import { StartScreen } from "@/components/start-screen";
 import { readAppearance } from "@/lib/appearance";
+import { readOnRouteMode } from "@/lib/on-route-server";
 import { defaultIntervalMinutes } from "@/lib/clock";
 import { defaultWindowMinutes } from "@/lib/window";
 import { createClient, currentUser } from "@/lib/supabase/server";
@@ -36,6 +37,7 @@ async function Settings({ searchParams }: { searchParams: Promise<{ error?: stri
         minutes={data?.check_interval_minutes ?? defaultIntervalMinutes}
         windowMinutes={data?.arrival_window_minutes ?? defaultWindowMinutes}
         failed={params.error === "1"}
+        onRoute={await readOnRouteMode()}
       />
     </StartScreen>
   );

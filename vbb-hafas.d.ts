@@ -1,14 +1,21 @@
 declare module "vbb-hafas" {
   type Place = { type?: string; id?: string; name?: string; lines?: Place[] };
 
+  type Located = {
+    id?: string;
+    name?: string;
+    location?: { latitude?: number; longitude?: number } | null;
+  };
+
   type JourneyLeg = {
     walking?: boolean;
     cancelled?: boolean;
     line?: { id?: string; name?: string; product?: string } | null;
-    origin?: { id?: string; name?: string } | null;
-    destination?: { id?: string; name?: string } | null;
+    origin?: Located | null;
+    destination?: Located | null;
+    polyline?: { features?: Array<{ geometry?: { coordinates?: number[] } | null }> } | null;
     stopovers?: Array<{
-      stop?: { id?: string; name?: string } | null;
+      stop?: Located | null;
       departure?: string | null;
       arrival?: string | null;
     }>;
@@ -38,6 +45,7 @@ declare module "vbb-hafas" {
         results?: number;
         language?: string;
         stopovers?: boolean;
+        polylines?: boolean;
       },
     ) => Promise<{
       journeys?: Journey[];
@@ -47,7 +55,7 @@ declare module "vbb-hafas" {
     }>;
     refreshJourney: (
       refreshToken: string,
-      options?: { language?: string; stopovers?: boolean },
+      options?: { language?: string; stopovers?: boolean; polylines?: boolean },
     ) => Promise<{ journey?: Journey | null; realtimeDataUpdatedAt?: number | null }>;
   };
 

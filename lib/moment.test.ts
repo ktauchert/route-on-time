@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { glanceFor, nextRouteId, tripMoment, upcomingLabel } from "./moment";
+import { activeRoute, glanceFor, nextRouteId, tripMoment, upcomingLabel } from "./moment";
 import type { Suggestion } from "./check";
 
 function trip(departure: string, arrival: string, token = "one"): Suggestion {
@@ -107,5 +107,47 @@ describe("upcomingLabel in hours", () => {
     expect(upcomingLabel("de", 60)).toBe("Abfahrt in 1 h");
     expect(upcomingLabel("de", 610)).toBe("Abfahrt in 10 h 10 min");
     expect(upcomingLabel("en", 75)).toBe("Departs in 1 h 15 min");
+  });
+});
+
+describe("activeRoute", () => {
+  // now is 17:30 UTC
+  const entry = (id: string, departure: string, arrival: string) => ({ route: { id }, trip: trip(departure, arrival, id) });
+
+  it("is a route whose trip is underway", () => {
+    const result = activeRoute([entry("a", "2026-10-28T17:20:00.000Z", "2026-10-28T18:00:00.000Z")], now);
+
+    expect(result?.route.id).toBe("a");
+    expect(result?.progress).toBeCloseTo(0.25);
+    expect(result?.upcomingMinutes).toBeNull();
+  });
+
+  it("is a route that leaves within twenty minutes", () => {
+    const result = activeRoute([entry("a", "2026-10-28T17:49:00.000Z", "2026-10-28T18:30:00.000Z")], now);
+
+    expect(result?.route.id).toBe("a");
+    expect(result?.upcomingMinutes).toBe(19);
+  });
+
+  it("is not a route that leaves later than that, or has already arrived", () => {
+    expect(activeRoute([entry("a", "2026-10-28T17:51:00.000Z", "2026-10-28T18:30:00.000Z")], now)).toBeNull();
+    expect(activeRoute([entry("a", "2026-10-28T16:00:00.000Z", "2026-10-28T17:00:00.000Z")], now)).toBeNull();
+    expect(activeRoute([{ route: { id: "a" }, trip: null }], now)).toBeNull();
+  });
+
+  it("takes the trip underway before one that is about to leave, and the nearer of two upcoming ones", () => {
+    const soon = entry("soon", "2026-10-28T17:35:00.000Z", "2026-10-28T18:00:00.000Z");
+    const later = entry("later", "2026-10-28T17:45:00.000Z", "2026-10-28T18:10:00.000Z");
+    const underway = entry("underway", "2026-10-28T17:00:00.000Z", "2026-10-28T18:00:00.000Z");
+
+    expect(activeRoute([later, soon], now)?.route.id).toBe("soon");
+    expect(activeRoute([later, soon, underway], now)?.route.id).toBe("underway");
+  });
+
+  it("lets the lead time be changed", () => {
+    const far = entry("a", "2026-10-28T18:00:00.000Z", "2026-10-28T18:40:00.000Z");
+
+    expect(activeRoute([far], now)).toBeNull();
+    expect(activeRoute([far], now, 30)?.route.id).toBe("a");
   });
 });

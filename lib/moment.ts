@@ -88,3 +88,30 @@ export function nextRouteId(glances: Record<string, RouteGlance>) {
   }
   return next;
 }
+
+export const onRouteLeadMinutes = 20;
+
+// A route is active while its trip runs, or when it leaves within the lead time.
+// A trip underway wins; among upcoming ones the nearest departure wins.
+export function activeRoute<R>(
+  entries: Array<{ route: R; trip: Suggestion | null }>,
+  now: Date,
+  leadMinutes = onRouteLeadMinutes,
+): { route: R; trip: Suggestion; upcomingMinutes: number | null; progress: number | null } | null {
+  let underway: { route: R; trip: Suggestion; upcomingMinutes: null; progress: number } | null = null;
+  let upcoming: { route: R; trip: Suggestion; upcomingMinutes: number; progress: null } | null = null;
+
+  for (const { route, trip } of entries) {
+    if (!trip || trip.legs.length === 0) continue;
+    const moment = tripMoment(trip.legs, now);
+    if (moment.progress != null) {
+      underway ??= { route, trip, upcomingMinutes: null, progress: moment.progress };
+    } else if (moment.upcomingMinutes != null && moment.upcomingMinutes <= leadMinutes) {
+      if (!upcoming || moment.upcomingMinutes < upcoming.upcomingMinutes) {
+        upcoming = { route, trip, upcomingMinutes: moment.upcomingMinutes, progress: null };
+      }
+    }
+  }
+
+  return underway ?? upcoming;
+}

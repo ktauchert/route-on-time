@@ -1974,3 +1974,53 @@ describe("choosing an alternative", () => {
     expect(after.connection?.refreshToken).toBe("alt");
   });
 });
+
+describe("coordinates for the map", () => {
+  const located = (name: string, latitude: number, longitude: number) => ({
+    name,
+    location: { latitude, longitude },
+  });
+
+  it("keeps the points of a leg and its stops", async () => {
+    const client = auskunft({
+      journeys: [
+        journey("a", [
+          ride({
+            origin: located("Potsdam Hbf", 52.3919, 13.0668),
+            destination: located("S Griebnitzsee", 52.3987, 13.1283),
+            stopovers: [{ stop: located("Medienstadt", 52.3979, 13.1112), departure: "2026-10-26T08:30:00+01:00" }],
+          }),
+        ]),
+      ],
+    });
+
+    const result = await runCheck(route(), mondayMorning, client);
+    const leg = result.connection?.legs[0];
+
+    expect(leg?.originPoint).toEqual([13.0668, 52.3919]);
+    expect(leg?.destinationPoint).toEqual([13.1283, 52.3987]);
+    expect(leg?.stopovers[0]?.point).toEqual([13.1112, 52.3979]);
+  });
+
+  it("keeps the shape of a leg, rounded and thinned to at most forty points", async () => {
+    const features = Array.from({ length: 200 }, (_, index) => ({
+      geometry: { coordinates: [13 + index * 0.0012345678, 52.4 + index * 0.0001234567] },
+    }));
+    const client = auskunft({ journeys: [journey("a", [ride({ polyline: { features } })])] });
+
+    const result = await runCheck(route(), mondayMorning, client);
+    const path = result.connection?.legs[0]?.path ?? [];
+
+    expect(path.length).toBeLessThanOrEqual(40);
+    expect(path[0]).toEqual([13, 52.4]);
+    expect(path[path.length - 1]).toEqual([13.2457, 52.4246]);
+  });
+
+  it("works without any coordinates", async () => {
+    const result = await runCheck(route(), mondayMorning, auskunft({}));
+    const leg = result.connection?.legs[0];
+
+    expect(leg?.path).toBeUndefined();
+    expect(leg?.originPoint).toBeUndefined();
+  });
+});

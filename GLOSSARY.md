@@ -46,6 +46,13 @@ _Avoid_: Ersatz, Umleitung
 Die Verbindung, die die Vorgabe am knappsten verfehlt, wenn es keine Alternative gibt. Sie ist als nicht passend gekennzeichnet und lässt sich nicht als heutige Verbindung wählen.
 _Avoid_: beste Alternative
 
+**On-Route-Modus**:
+Eine Vollbild-Ansicht mit Pixelkarte für die aktive Route: oben der Name, unten Restzeit und Fortschritt. Sie erscheint, solange die Route fährt und 20 Minuten davor, und lässt sich pro Gerät ausschalten.
+_Avoid_: Navigation, Live-Karte
+
+**aktive Route**:
+Die Route, deren heutige Verbindung gerade fährt oder in höchstens 20 Minuten abfährt. Fährt eine, geht sie vor.
+
 **entspannt**:
 Eine Vorliebe der Route: Unter den passenden Verbindungen, die höchstens 20 Minuten später ankommen als die früheste, gewinnt die mit den wenigsten Umstiegen.
 _Avoid_: ruhig, gemütlich

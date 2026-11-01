@@ -38,6 +38,7 @@ export function liveAuskunft(makeClient: (avoid: string[]) => ReturnType<typeof 
         results: 5,
         language: "de",
         stopovers: true,
+        polylines: true,
       });
       return {
         journeys: result.journeys ?? [],
@@ -51,6 +52,7 @@ export function liveAuskunft(makeClient: (avoid: string[]) => ReturnType<typeof 
         results: 5,
         language: "de",
         stopovers: true,
+        polylines: true,
       });
       return {
         journeys: result.journeys ?? [],
@@ -59,7 +61,7 @@ export function liveAuskunft(makeClient: (avoid: string[]) => ReturnType<typeof 
       };
     },
     async refreshJourney(refreshToken) {
-      const result = await makeClient([]).refreshJourney(refreshToken, { language: "de", stopovers: true });
+      const result = await makeClient([]).refreshJourney(refreshToken, { language: "de", stopovers: true, polylines: true });
       return {
         journey: result.journey ?? null,
         realtimeDataUpdatedAt: result.realtimeDataUpdatedAt ?? null,

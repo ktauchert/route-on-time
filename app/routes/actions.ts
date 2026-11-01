@@ -12,7 +12,7 @@ import {
 import { hafasClient, liveAuskunft } from "@/lib/auskunft";
 import { defaultIntervalMinutes, isDue } from "@/lib/clock";
 import { defaultWindowMinutes } from "@/lib/window";
-import { glanceFor, type RouteGlance } from "@/lib/moment";
+import { activeRoute, countedTrip, glanceFor, type RouteGlance } from "@/lib/moment";
 import { preferableModes } from "@/lib/mode";
 import { findPlaces, routeProblems, storedRouteName, type StoredRoute, type Weekday } from "@/lib/route";
 import { createClient, currentUser } from "@/lib/supabase/server";
@@ -186,37 +186,57 @@ export async function listRoutes(): Promise<{ routes: StoredRoute[]; missingTabl
   };
 }
 
-export async function listGlances(routes: StoredRoute[], now = new Date()): Promise<Record<string, RouteGlance>> {
+async function latestRows(routes: StoredRoute[]) {
   const supabase = await createClient();
-  if (!supabase || routes.length === 0) return {};
+  if (!supabase || routes.length === 0) return null;
 
   const { data, error } = await supabase
     .from("route_checks")
     .select("route_id, service_date, status, connection, suggestions, alternatives")
     .order("checked_at", { ascending: false });
 
-  if (error || !data) return {};
+  if (error || !data) return null;
 
   const latest = new Map<string, (typeof data)[number]>();
   for (const row of data) {
     if (!latest.has(row.route_id)) latest.set(row.route_id, row);
   }
+  return latest;
+}
+
+function checkOfRow(row: NonNullable<Awaited<ReturnType<typeof latestRows>>> extends Map<string, infer R> ? R : never) {
+  return {
+    serviceDate: row.service_date,
+    status: row.status as CheckStatus,
+    connection: (row.connection ?? null) as Suggestion | null,
+    suggestions: (row.suggestions ?? []) as Suggestion[],
+    alternatives: (row.alternatives ?? []) as Suggestion[],
+  };
+}
+
+// The route that runs now or leaves within twenty minutes, for the on-route mode.
+export async function findActiveRoute(routes: StoredRoute[], now = new Date()) {
+  const latest = await latestRows(routes);
+  if (!latest) return null;
+
+  const entries = routes.flatMap((route) => {
+    const row = latest.get(route.id);
+    if (!row || !statuses.includes(row.status)) return [];
+    return [{ route, trip: countedTrip(route, checkOfRow(row)) }];
+  });
+
+  return activeRoute(entries, now);
+}
+
+export async function listGlances(routes: StoredRoute[], now = new Date()): Promise<Record<string, RouteGlance>> {
+  const latest = await latestRows(routes);
+  if (!latest) return {};
 
   const glances: Record<string, RouteGlance> = {};
   for (const route of routes) {
     const row = latest.get(route.id);
     if (!row || !statuses.includes(row.status)) continue;
-    const glance = glanceFor(
-      route,
-      {
-        serviceDate: row.service_date,
-        status: row.status,
-        connection: (row.connection ?? null) as Suggestion | null,
-        suggestions: (row.suggestions ?? []) as Suggestion[],
-        alternatives: (row.alternatives ?? []) as Suggestion[],
-      },
-      now,
-    );
+    const glance = glanceFor(route, checkOfRow(row), now);
     if (glance) glances[route.id] = glance;
   }
 

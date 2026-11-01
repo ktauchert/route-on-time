@@ -210,7 +210,7 @@ describe("RouteForm", () => {
   it("cancels an edit back to the route index", () => {
     render(<RouteForm language="de" route={route} failed={false} />);
 
-    expect(screen.getByRole("link", { name: "Abbrechen" }).getAttribute("href")).toBe("/routes");
+    expect(screen.getByRole("link", { name: "Abbrechen" }).getAttribute("href")).toBe("/routes?all=1");
     const save = screen.getByRole("button", { name: "Speichern" });
     expect(screen.getByRole("button", { name: "Löschen" }).getAttribute("data-size")).toBe(
       save.getAttribute("data-size"),

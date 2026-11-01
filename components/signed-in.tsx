@@ -21,7 +21,7 @@ export function SignedIn({
 
   return (
     <nav aria-label={text.navigation} className="flex items-center gap-1">
-      <Link href="/routes" className={item} aria-current={current === "routes" ? "page" : undefined}>
+      <Link href="/routes?all=1" className={item} aria-current={current === "routes" ? "page" : undefined}>
         {text.routes}
       </Link>
       <Link href="/settings" className={item} aria-current={current === "settings" ? "page" : undefined}>

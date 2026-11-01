@@ -1,6 +1,6 @@
 # Roadmap
 
-Jede Zeile ist eine Phase. Der Durchgang liest die verlinkte Datei und baut nur diese Phase. Stand 29. Oktober 2026: Phasen 0 bis 8 sind in `main`. Phase 9 (Ausfälle verständlich) ist gebaut.
+Jede Zeile ist eine Phase. Der Durchgang liest die verlinkte Datei und baut nur diese Phase. Stand 29. Oktober 2026: Phasen 0 bis 9 sind in `main`. Phase 10 (On-Route-Modus) ist gebaut.
 
 | Phase | Ergebnis | Datei | Issue |
 | --- | --- | --- | --- |
@@ -14,6 +14,7 @@ Jede Zeile ist eine Phase. Der Durchgang liest die verlinkte Datei und baut nur 
 | 7 | Supabase Cron prüft fällige Routen, auch bei geschlossenem Tab. | [07 Uhr](./phasen/07-uhr.md) | [#8](https://github.com/ktauchert/route-on-time/issues/8) |
 | 8 | Die App lässt sich auf den Home-Bildschirm legen, prüft beim Öffnen und behält bei Fehlern den letzten guten Stand. | [08 PWA](./phasen/08-pwa.md) | [#9](https://github.com/ktauchert/route-on-time/issues/9) |
 | 9 | Bei passt nicht steht der konkrete Grund, und bis zu drei Alternativen zeigen ihre Folgen. | [09 Ausfälle](./phasen/09-ausfaelle.md) | [#23](https://github.com/ktauchert/route-on-time/issues/23) |
+| 10 | Eine Pixelkarte zeigt Weg und Stationen der aktiven Route, mit Restzeit unten und Popup je Station. | [10 On-Route-Modus](./phasen/10-on-route.md) | [#25](https://github.com/ktauchert/route-on-time/issues/25) |
 
 Danach, erst wenn die Fragen dazu beantwortet sind: [Später](./phasen/spaeter.md).
 

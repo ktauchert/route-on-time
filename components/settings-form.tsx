@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { saveSettings } from "@/app/settings/actions";
+import { saveSettings, setOnRouteMode } from "@/app/settings/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { maximumIntervalMinutes, minimumIntervalMinutes } from "@/lib/clock";
 import { maximumWindowMinutes, minimumWindowMinutes } from "@/lib/window";
+import { onRouteCopy } from "@/lib/on-route-copy";
+import type { OnRouteMode } from "@/lib/on-route";
 import type { Language } from "@/lib/preferences";
 
 export function SettingsForm({
@@ -11,16 +13,20 @@ export function SettingsForm({
   minutes,
   windowMinutes,
   failed,
+  onRoute = "on",
 }: {
   language: Language;
   minutes: number;
   windowMinutes: number;
   failed: boolean;
+  onRoute?: OnRouteMode;
 }) {
   const isGerman = language === "de";
+  const route = onRouteCopy(language);
 
   return (
-    <form action={saveSettings} className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+    <form action={saveSettings} className="flex w-full flex-col gap-6">
       <h2 className="text-2xl font-semibold tracking-tight">{isGerman ? "Einstellungen" : "Settings"}</h2>
       <div className="flex flex-col gap-4 rounded-2xl border bg-card p-4 shadow-xs md:p-6">
       {failed ? (
@@ -67,10 +73,21 @@ export function SettingsForm({
       <div className="flex gap-2 border-t pt-4">
         <Button type="submit">{isGerman ? "Speichern" : "Save"}</Button>
         <Button variant="outline" asChild>
-          <Link href="/routes">{isGerman ? "Routen" : "Routes"}</Link>
+          <Link href="/routes?all=1">{isGerman ? "Routen" : "Routes"}</Link>
         </Button>
       </div>
       </div>
     </form>
+    <form action={setOnRouteMode} className="flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-xs md:p-6">
+      <h3 className="text-base font-semibold tracking-tight">{route.settingsHeading}</h3>
+      <p className="text-sm text-muted-foreground">{route.settingsText}</p>
+      <p className="text-sm font-medium">{onRoute === "on" ? route.isOn : route.isOff}</p>
+      <input type="hidden" name="mode" value={onRoute === "on" ? "off" : "on"} />
+      <input type="hidden" name="next" value="/settings" />
+      <Button type="submit" variant="outline" className="w-fit">
+        {onRoute === "on" ? route.turnOff : route.turnOn}
+      </Button>
+    </form>
+    </div>
   );
 }

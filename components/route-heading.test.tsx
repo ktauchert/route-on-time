@@ -31,7 +31,7 @@ describe("RouteHeading", () => {
   it("names the route with its way, arrival and weekdays, and leads back to the list", () => {
     render(<RouteHeading language="de" route={route} />);
 
-    expect(screen.getByRole("link", { name: "← Routen" }).getAttribute("href")).toBe("/routes");
+    expect(screen.getByRole("link", { name: "← Routen" }).getAttribute("href")).toBe("/routes?all=1");
     expect(screen.getByRole("heading", { level: 2, name: "zur Arbeit" })).toBeTruthy();
     expect(screen.getByText("Alex → Zoo · Ankunft 09:00 · Mo–Fr")).toBeTruthy();
   });

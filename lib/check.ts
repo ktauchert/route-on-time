@@ -14,13 +14,20 @@ export type CheckReason =
   | "no-answer"
   | "stale";
 
+type RawPlace = {
+  id?: string;
+  name?: string;
+  location?: { latitude?: number; longitude?: number } | null;
+};
+
 export type RawLeg = {
   walking?: boolean;
+  polyline?: { features?: Array<{ geometry?: { coordinates?: number[] } | null }> } | null;
   remarks?: Array<{ type?: string; text?: string; summary?: string }>;
   cancelled?: boolean;
   line?: { id?: string; name?: string; product?: string } | null;
-  origin?: { id?: string; name?: string } | null;
-  destination?: { id?: string; name?: string } | null;
+  origin?: RawPlace | null;
+  destination?: RawPlace | null;
   departure?: string | null;
   plannedDeparture?: string | null;
   departureDelay?: number | null;
@@ -28,7 +35,7 @@ export type RawLeg = {
   plannedArrival?: string | null;
   arrivalDelay?: number | null;
   stopovers?: Array<{
-    stop?: { id?: string; name?: string } | null;
+    stop?: RawPlace | null;
     departure?: string | null;
     arrival?: string | null;
   }>;
@@ -38,6 +45,9 @@ export type RawJourney = {
   refreshToken?: string;
   legs?: RawLeg[];
 };
+
+// [longitude, latitude]
+export type MapPoint = [number, number];
 
 export type LegView = {
   walking: boolean;
@@ -54,7 +64,10 @@ export type LegView = {
   arrivalDelaySeconds: number | null;
   cancelled: boolean;
   remarks?: string[];
-  stopovers: Array<{ id: string | null; name: string; departure: string; arrival: string }>;
+  originPoint?: MapPoint;
+  destinationPoint?: MapPoint;
+  path?: MapPoint[];
+  stopovers: Array<{ id: string | null; name: string; departure: string; arrival: string; point?: MapPoint }>;
 };
 
 export type Suggestion = {
@@ -196,8 +209,32 @@ function remarksOf(raw: RawLeg) {
   return [...new Set(texts)];
 }
 
+const maximumPathPoints = 40;
+
+function pointOf(place: RawPlace | null | undefined): MapPoint | undefined {
+  const { latitude, longitude } = place?.location ?? {};
+  if (typeof latitude !== "number" || typeof longitude !== "number") return undefined;
+  return [Math.round(longitude * 1e4) / 1e4, Math.round(latitude * 1e4) / 1e4];
+}
+
+// The map only needs the rough course, so a long shape is thinned to evenly spaced points.
+function pathOf(raw: RawLeg): MapPoint[] | undefined {
+  const points = (raw.polyline?.features ?? [])
+    .map((feature) => feature.geometry?.coordinates)
+    .filter((coordinates): coordinates is number[] => Array.isArray(coordinates) && coordinates.length >= 2)
+    .map(([longitude, latitude]): MapPoint => [Math.round(longitude * 1e4) / 1e4, Math.round(latitude * 1e4) / 1e4]);
+  if (points.length === 0) return undefined;
+  if (points.length <= maximumPathPoints) return points;
+
+  const step = (points.length - 1) / (maximumPathPoints - 1);
+  return Array.from({ length: maximumPathPoints }, (_, index) => points[Math.round(index * step)] as MapPoint);
+}
+
 function mapLeg(raw: RawLeg): LegView {
   const remarks = remarksOf(raw);
+  const originPoint = pointOf(raw.origin);
+  const destinationPoint = pointOf(raw.destination);
+  const path = pathOf(raw);
   return {
     walking: Boolean(raw.walking),
     lineId: raw.line?.id ?? null,
@@ -213,13 +250,20 @@ function mapLeg(raw: RawLeg): LegView {
     arrivalDelaySeconds: raw.arrivalDelay ?? null,
     cancelled: Boolean(raw.cancelled),
     ...(remarks.length > 0 ? { remarks } : {}),
+    ...(originPoint ? { originPoint } : {}),
+    ...(destinationPoint ? { destinationPoint } : {}),
+    ...(path ? { path } : {}),
     stopovers: (raw.stopovers ?? [])
-      .map((stop) => ({
-        id: stop.stop?.id ?? null,
-        name: stop.stop?.name ?? "",
-        departure: stop.departure || "",
-        arrival: stop.arrival || "",
-      }))
+      .map((stop) => {
+        const point = pointOf(stop.stop);
+        return {
+          id: stop.stop?.id ?? null,
+          name: stop.stop?.name ?? "",
+          departure: stop.departure || "",
+          arrival: stop.arrival || "",
+          ...(point ? { point } : {}),
+        };
+      })
       .filter((stop) => stop.id || stop.name),
   };
 }

@@ -7,7 +7,7 @@ export function RouteHeading({ language, route }: { language: Language; route: S
 
   return (
     <div className="flex flex-col gap-2">
-      <Link href="/routes" className="w-fit text-sm text-muted-foreground hover:text-foreground">
+      <Link href="/routes?all=1" className="w-fit text-sm text-muted-foreground hover:text-foreground">
         {isGerman ? "← Routen" : "← Routes"}
       </Link>
       <h2 className="text-2xl font-semibold tracking-tight text-balance">

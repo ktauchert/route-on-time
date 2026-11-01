@@ -209,7 +209,7 @@ export function RouteForm({
         {isGerman ? "Speichern" : "Save"}
       </Button>
       <Button variant="outline" asChild>
-        <Link href="/routes">{isGerman ? "Abbrechen" : "Cancel"}</Link>
+        <Link href="/routes?all=1">{isGerman ? "Abbrechen" : "Cancel"}</Link>
       </Button>
       {route ? (
         <div className="ml-auto">

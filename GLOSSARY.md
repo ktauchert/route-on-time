@@ -38,6 +38,14 @@ Wie viele Minuten eine Verbindung vor der Ankunftsuhrzeit ankommen darf, um noch
 **Weitere Vorschläge**:
 Ein Knopf unter den Vorschlägen. Er sucht eine Stufe weiter weg, bei Ankunft früher, beim Aufbruch per Knopf später, und hängt die neuen Vorschläge an, bis es 15 sind. Die nächste Prüfung ersetzt die Liste wieder.
 
+**Alternative**:
+Eine passende Verbindung aus der weiteren Suche zur selben Ankunftsuhrzeit, wenn die Vorschläge die Vorgabe verfehlen. Es werden höchstens drei gezeigt, jede mit ihrem Unterschied zur ursprünglichen Verbindung. Sie wird erst die heutige Verbindung, wenn die Person sie wählt.
+_Avoid_: Ersatz, Umleitung
+
+**nächstbeste Verbindung**:
+Die Verbindung, die die Vorgabe am knappsten verfehlt, wenn es keine Alternative gibt. Sie ist als nicht passend gekennzeichnet und lässt sich nicht als heutige Verbindung wählen.
+_Avoid_: beste Alternative
+
 **entspannt**:
 Eine Vorliebe der Route: Unter den passenden Verbindungen, die höchstens 20 Minuten später ankommen als die früheste, gewinnt die mit den wenigsten Umstiegen.
 _Avoid_: ruhig, gemütlich

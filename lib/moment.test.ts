@@ -69,7 +69,7 @@ describe("glanceFor", () => {
           status: "fits",
           connection: earlier,
           suggestions: [earlier, chosen],
-          alternative: null,
+          alternatives: [],
         },
         now,
       ),

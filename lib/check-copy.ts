@@ -1,5 +1,5 @@
 import { berlinInstant } from "./check";
-import type { CheckReason, CheckStatus, LegView } from "./check";
+import type { CheckReason, CheckStatus, LegView, ProblemDetail, Suggestion } from "./check";
 import { modeLabel, type Mode } from "./mode";
 import type { Language } from "./preferences";
 
@@ -34,6 +34,9 @@ const copy = {
     alternative: "Alternative",
     suggestions: "Vorschläge",
     noAlternative: "Es gibt keine Alternative.",
+    alternatives: "Alternativen",
+    nearest: "Nächstbeste Verbindung",
+    nearestNote: "Passt nicht:",
     restFrom: "Restweg ab",
   },
   en: {
@@ -66,6 +69,9 @@ const copy = {
     alternative: "Alternative",
     suggestions: "Suggestions",
     noAlternative: "There is no alternative.",
+    alternatives: "Alternatives",
+    nearest: "Nearest connection",
+    nearestNote: "Doesn't fit:",
     restFrom: "Rest of the trip from",
   },
 } as const;
@@ -80,6 +86,81 @@ export function statusWord(language: Language, status: CheckStatus) {
 
 export function reasonSentence(language: Language, reason: CheckReason) {
   return copy[language].reason[reason];
+}
+
+export function problemSentence(language: Language, detail: ProblemDetail) {
+  const general = copy[language].reason[detail.reason];
+  const de = language === "de";
+
+  if (detail.reason === "cancelled" && detail.line && detail.from && detail.to && detail.departure) {
+    const time = clockLabel(detail.departure);
+    const leg = `${detail.line} ${detail.from} → ${detail.to}`;
+    return de ? `${leg} um ${time} fällt aus.` : `${leg} at ${time} is cancelled.`;
+  }
+
+  if (detail.reason === "transfer" && detail.place && detail.gapMinutes != null && detail.requiredMinutes != null) {
+    return de
+      ? `Umstieg in ${detail.place}: ${detail.gapMinutes} min statt ${detail.requiredMinutes} min.`
+      : `Transfer at ${detail.place}: ${detail.gapMinutes} min instead of ${detail.requiredMinutes} min.`;
+  }
+
+  if (detail.reason === "arrival" && detail.arrival && detail.deadline && (detail.minutesLate ?? 0) > 0) {
+    const time = clockLabel(detail.arrival);
+    return de
+      ? `Die Ankunft um ${time} liegt ${detail.minutesLate} min nach ${detail.deadline}.`
+      : `The arrival at ${time} is ${detail.minutesLate} min after ${detail.deadline}.`;
+  }
+
+  if (detail.reason === "transfers" && detail.transfers != null && detail.maxTransfers != null) {
+    return de
+      ? `Umstiege: ${detail.transfers}, erlaubt: ${detail.maxTransfers}.`
+      : `Transfers: ${detail.transfers}, allowed: ${detail.maxTransfers}.`;
+  }
+
+  if (detail.reason === "avoided" && detail.line) {
+    return de
+      ? `Die Verbindung nutzt die ${detail.line}, die du meiden willst.`
+      : `The connection uses ${detail.line}, which you want to avoid.`;
+  }
+
+  return general;
+}
+
+function arrivalOf(suggestion: Suggestion) {
+  const arrival = suggestion.legs[suggestion.legs.length - 1]?.arrival;
+  return arrival ? new Date(arrival).getTime() : null;
+}
+
+function changesOf(suggestion: Suggestion) {
+  return Math.max(0, suggestion.legs.filter((leg) => !leg.walking).length - 1);
+}
+
+// What an alternative costs or saves against the connection it replaces.
+export function differenceLabels(language: Language, original: Suggestion | null, alternative: Suggestion) {
+  if (!original) return [];
+  const de = language === "de";
+  const labels: string[] = [];
+
+  const before = arrivalOf(original);
+  const after = arrivalOf(alternative);
+  if (before != null && after != null) {
+    const minutes = Math.round((after - before) / 60000);
+    if (minutes !== 0) {
+      const span = durationLabel(Math.abs(minutes));
+      labels.push(
+        minutes > 0 ? (de ? `${span} später` : `${span} later`) : de ? `${span} früher` : `${span} earlier`,
+      );
+    }
+  }
+
+  const changes = changesOf(alternative) - changesOf(original);
+  if (changes !== 0) {
+    const count = Math.abs(changes);
+    if (de) labels.push(`${count} ${count === 1 ? "Umstieg" : "Umstiege"} ${changes > 0 ? "mehr" : "weniger"}`);
+    else labels.push(`${count} ${changes > 0 ? "more" : "fewer"} ${count === 1 ? "transfer" : "transfers"}`);
+  }
+
+  return labels;
 }
 
 export function delayLabel(seconds: number | null) {

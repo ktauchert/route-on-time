@@ -1,4 +1,4 @@
-import { checkRow, todayFromCheck, type CheckResult, type CheckStatus, type Suggestion } from "@/lib/check";
+import { checkRow, type CheckResult, type CheckStatus, type Suggestion } from "@/lib/check";
 import { defaultIntervalMinutes, planTick, secretsMatch, type ClockRoute } from "@/lib/clock";
 import { defaultWindowMinutes } from "@/lib/window";
 import { liveAuskunft } from "@/lib/auskunft";
@@ -20,7 +20,8 @@ function checkFromRow(row: {
   checked_at: string;
   connection: unknown;
   suggestions: unknown;
-  alternative: unknown;
+  alternatives: unknown;
+  nearest: unknown;
   no_alternative: boolean | null;
   search_from_name: string | null;
   failed_at: string | null;
@@ -33,7 +34,8 @@ function checkFromRow(row: {
     checkedAt: row.checked_at,
     connection: (row.connection ?? null) as Suggestion | null,
     suggestions: (row.suggestions ?? []) as Suggestion[],
-    alternative: (row.alternative ?? null) as Suggestion | null,
+    alternatives: (row.alternatives ?? []) as Suggestion[],
+    nearest: (row.nearest ?? null) as Suggestion | null,
     noAlternative: Boolean(row.no_alternative),
     searched: true,
     searchFromName: row.search_from_name,
@@ -70,7 +72,7 @@ export async function POST(request: Request) {
   const checks = await admin
     .from("route_checks")
     .select(
-      "route_id, service_date, status, reason, checked_at, connection, suggestions, alternative, no_alternative, search_from_name, failed_at",
+      "route_id, service_date, status, reason, checked_at, connection, suggestions, alternatives, nearest, no_alternative, search_from_name, failed_at",
     )
     .order("checked_at", { ascending: false });
   if (checks.error) return Response.json({ error: "unavailable" }, { status: 500 });
@@ -117,14 +119,6 @@ export async function POST(request: Request) {
       .from("route_checks")
       .upsert(checkRow(check.userId, check.id, check.result), { onConflict: "route_id,service_date" });
     if (saved.error) return Response.json({ error: "unavailable" }, { status: 500 });
-
-    const today = todayFromCheck(check.result);
-    if (!today) continue;
-    const remembered = await admin
-      .from("routes")
-      .update({ today_refresh_token: today.refreshToken, today_service_date: today.serviceDate })
-      .eq("id", check.id);
-    if (remembered.error) return Response.json({ error: "unavailable" }, { status: 500 });
   }
 
   return Response.json({ checked: outcome.checks.length });

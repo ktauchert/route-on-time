@@ -1,6 +1,6 @@
 # Roadmap
 
-Jede Zeile ist eine Phase. Der Durchgang liest die verlinkte Datei und baut nur diese Phase. Stand 29. Oktober 2026: Phasen 0 bis 7 sind in `main`. Phase 8 ist gebaut. Phase 9 (Ausfälle verständlich) folgt, wenn der Alltag gezeigt hat, was die Auskunft bei Ausfällen liefert.
+Jede Zeile ist eine Phase. Der Durchgang liest die verlinkte Datei und baut nur diese Phase. Stand 29. Oktober 2026: Phasen 0 bis 8 sind in `main`. Phase 9 (Ausfälle verständlich) ist gebaut.
 
 | Phase | Ergebnis | Datei | Issue |
 | --- | --- | --- | --- |

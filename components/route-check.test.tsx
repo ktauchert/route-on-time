@@ -10,7 +10,7 @@ const fitting: CheckResult = {
   reason: null,
   checkedAt: "2026-10-26T06:00:00.000Z",
   connection: { refreshToken: "on-time", legs: [] },
-  alternative: null,
+  alternatives: [],
   noAlternative: false,
   searched: true,
   searchFromName: null,
@@ -313,7 +313,7 @@ describe("RouteCheck", () => {
         routeId="1"
         check={{
           ...fitting,
-          alternative: {
+          alternatives: [{
             refreshToken: "alt",
             legs: [
               {
@@ -332,14 +332,14 @@ describe("RouteCheck", () => {
                 cancelled: false,
               },
             ],
-          },
+          }],
         }}
         chosenToken="alt"
         saveFailed={false}
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Alternative" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Alternativen" })).toBeTruthy();
     expect(screen.getAllByText("RE1").length).toBeGreaterThan(0);
     expect(screen.getByText(/S Bernau Bhf/)).toBeTruthy();
   });
@@ -438,5 +438,89 @@ describe("RouteCheck", () => {
     );
 
     expect(screen.getByRole("alert").textContent).toContain("nicht gespeichert");
+  });
+
+  const leg = (overrides: Record<string, unknown> = {}) => ({
+    walking: false,
+    lineId: "line-s7",
+    lineName: "S7",
+    originId: null,
+    originName: "Potsdam Hbf",
+    destinationId: null,
+    destinationName: "S Griebnitzsee",
+    stopovers: [],
+    departure: "2026-10-26T07:42:00+01:00",
+    arrival: "2026-10-26T08:10:00+01:00",
+    departureDelaySeconds: null,
+    arrivalDelaySeconds: null,
+    cancelled: false,
+    ...overrides,
+  });
+
+  const brokenCheck: CheckResult = {
+    ...fitting,
+    status: "doesnt-fit",
+    reason: "cancelled",
+    connection: { refreshToken: "broken", legs: [leg({ cancelled: true, remarks: ["Ersatzverkehr mit Bus."] })] },
+    suggestions: [],
+  };
+
+  it("names the line, the leg and the time of a cancelled leg, with the remark", () => {
+    render(<RouteCheck language="de" routeId="1" check={brokenCheck} chosenToken={null} saveFailed={false} />);
+
+    expect(screen.getByText("S7 Potsdam Hbf → S Griebnitzsee um 07:42 fällt aus.")).toBeTruthy();
+    expect(screen.getByText("Ersatzverkehr mit Bus.")).toBeTruthy();
+  });
+
+  it("says it in English too", () => {
+    render(<RouteCheck language="en" routeId="1" check={brokenCheck} chosenToken={null} saveFailed={false} />);
+
+    expect(screen.getByText("S7 Potsdam Hbf → S Griebnitzsee at 07:42 is cancelled.")).toBeTruthy();
+  });
+
+  it("shows each alternative with its difference and a button to choose it, while the stand stays", () => {
+    const alt = (token: string, arrival: string) => ({
+      refreshToken: token,
+      legs: [leg({ departure: "2026-10-26T07:50:00+01:00", arrival })],
+    });
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={{
+          ...brokenCheck,
+          alternatives: [alt("a1", "2026-10-26T08:22:00+01:00"), alt("a2", "2026-10-26T08:05:00+01:00")],
+        }}
+        chosenToken={null}
+        saveFailed={false}
+      />,
+    );
+
+    expect(screen.getByText("passt nicht")).toBeTruthy();
+    expect(screen.getByText("12 min später")).toBeTruthy();
+    expect(screen.getByText("5 min früher")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Als heutige Verbindung" })).toHaveLength(2);
+  });
+
+  it("marks the nearest connection as not fitting and offers no choice", () => {
+    render(
+      <RouteCheck
+        language="de"
+        routeId="1"
+        check={{
+          ...brokenCheck,
+          noAlternative: true,
+          nearest: { refreshToken: "near", legs: [leg({ arrival: "2026-10-26T09:10:00+01:00" })] },
+        }}
+        chosenToken={null}
+        saveFailed={false}
+        limits={{ arrival: "09:00", transferMinutes: null, maxTransfers: null, avoidLines: [] }}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Nächstbeste Verbindung" })).toBeTruthy();
+    expect(screen.getByText(/Passt nicht:/)).toBeTruthy();
+    expect(screen.getByText(/Die Ankunft um 09:10 liegt 10 min nach 09:00\./)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Als heutige Verbindung" })).toBeNull();
   });
 });

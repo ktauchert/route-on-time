@@ -37,7 +37,7 @@ function previous(checkedAt: string, connection: Suggestion | null = trip()): Ch
     checkedAt,
     connection,
     suggestions: connection ? [connection] : [],
-    alternative: null,
+    alternatives: [],
     noAlternative: false,
     searched: true,
     searchFromName: null,
